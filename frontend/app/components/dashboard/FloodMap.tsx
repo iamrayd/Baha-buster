@@ -1,6 +1,6 @@
-// app/components/dashboard/FloodMap.tsx
 "use client";
 
+import { useEffect } from "react";
 import { Card } from "../ui/Card";
 import dynamic from "next/dynamic";
 import L from "leaflet";
@@ -12,18 +12,6 @@ const Tiles = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ss
 const Pin = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
 const Tip = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
 
-// Fix Leaflet icons once (type-safe, no `any`)
-useEffect(() => {
-  const proto = L.Icon.Default.prototype as { [key: string]: unknown };
-  Reflect.deleteProperty(proto, "_getIconUrl");
-
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  });
-}, []);
-
 // Alerts data
 const alerts = [
   { name: "T. Padilla", lat: 10.3025, lng: 123.8921, level: "high" },
@@ -33,6 +21,18 @@ const alerts = [
 ] as const;
 
 export default function FloodMap() {
+  // Fix Leaflet icons once component mounts
+  useEffect(() => {
+    const proto = L.Icon.Default.prototype as unknown as { [key: string]: unknown };
+    Reflect.deleteProperty(proto, "_getIconUrl");
+
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    });
+  }, []);
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="relative h-96">
