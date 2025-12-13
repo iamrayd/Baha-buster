@@ -6,12 +6,11 @@ import "leaflet/dist/leaflet.css";
 
 let L: typeof import("leaflet") | null = null;
 
-// --- Consolidated GeoJSON Data for All Barangays (Used as the initial/source data) ---
-// Note: The 'level' property is what controls the color dynamically.
+// Initial GeoJSON Data
 const initialBarangayFeatures = [
   {
     "type" : "Feature", 
-    "geometry" : { /* ... Guadalupe coordinates ... */ 
+    "geometry" : {
         "type" : "Polygon", 
         "coordinates" : [
           [
@@ -37,7 +36,7 @@ const initialBarangayFeatures = [
   },
   {
     "type" : "Feature", 
-    "geometry" : { /* ... Labangon coordinates ... */ 
+    "geometry" : {
         "type" : "Polygon", 
         "coordinates" : [
             [[123.87439736055, 10.3108323774123], [123.880894752791, 10.3140365251655], [123.882792324107, 10.3075936947932], [123.885053403192, 10.2981644065621], [123.885084563802, 10.2980364285384], [123.885147215971, 10.2977341717946], [123.88538689339, 10.2975403229276], [123.885808358869, 10.2967467611542], [123.885678985097, 10.2966647915469], [123.880328537832, 10.2932783107455], [123.880199166758, 10.2931964256746], [123.88016025759, 10.2933244243827], [123.87972558197, 10.2947545973469], [123.878525020314, 10.2974406348774], [123.877652906357, 10.2993164399018], [123.876719495508, 10.302142956932], [123.875169323306, 10.3056214212916], [123.872478068808, 10.3069922192156], [123.869702028926, 10.3143170102219], [123.87439736055, 10.3108323774123]]
@@ -46,15 +45,10 @@ const initialBarangayFeatures = [
     "properties" : { "Brgy" : "Labangon", "level": "medium" }
   },
   {
-  "type" : "FeatureCollection", 
-  "features" : [
-    {
-      "type" : "Feature", 
-      "geometry" : 
-      {
+    "type" : "Feature", 
+    "geometry" : {
         "type" : "Polygon", 
-        "coordinates" : 
-        [
+        "coordinates" : [
           [
             [123.874379827367, 10.2891623457657], 
             [123.874476395669, 10.2927549268984], 
@@ -81,20 +75,13 @@ const initialBarangayFeatures = [
           ]
         ]
       }, 
-      "properties" : { "Brgy" : "Mambaling", "level": "low" }
-    }
-  ]
-},
-{
-  "type" : "FeatureCollection", 
-  "features" : [
-    {
-      "type" : "Feature", 
-      "geometry" : 
-      {
+    "properties" : { "Brgy" : "Mambaling", "level": "low" }
+  },
+  {
+    "type" : "Feature", 
+    "geometry" : {
         "type" : "Polygon", 
-        "coordinates" : 
-        [
+        "coordinates" : [
           [
             [123.880135539723, 10.3374300886277], 
             [123.884363969422, 10.3410708500397], 
@@ -121,21 +108,13 @@ const initialBarangayFeatures = [
           ]
         ]
       }, 
-      "properties" : { "Brgy" : "Lahug", "level": "high" }
-    }
-  ]
-},
-
+    "properties" : { "Brgy" : "Lahug", "level": "high" }
+  },
   {
-  "type" : "FeatureCollection", 
-  "features" : [
-    {
-      "type" : "Feature", 
-      "geometry" : 
-      {
+    "type" : "Feature", 
+    "geometry" : {
         "type" : "Polygon", 
-        "coordinates" : 
-        [
+        "coordinates" : [
           [
             [123.894550735028, 10.3635659062416], 
             [123.899174316941, 10.3602102146298], 
@@ -149,24 +128,22 @@ const initialBarangayFeatures = [
           ]
         ]
       }, 
-      "properties" : { "Brgy" : "Banilad", "level": "low" }
-    }
-  ]
-}
-
+    "properties" : { "Brgy" : "Banilad", "level": "low" }
+  }
 ];
 
+interface FloodMapProps {
+  onBarangayClick?: (barangayName: string) => void;
+}
 
-export default function FloodMap() {
+export default function FloodMap({ onBarangayClick }: FloodMapProps) {
   const [MapComponent, setMapComponent] = useState<React.ComponentType<any> | null>(null);
-  // 1. State to hold the GeoJSON features
   const [barangayData, setBarangayData] = useState<any[]>([]);
 
-  // 2. Load Leaflet and other components (remains the same)
   useEffect(() => {
     Promise.all([import("react-leaflet"), import("leaflet")]).then(([mod, leafletModule]) => {
       L = leafletModule;
-      // ... (Leaflet Icon Fix code) ...
+      
       delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -174,34 +151,31 @@ export default function FloodMap() {
         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
-      // 3. Define the Map component inside useEffect
       const Map = () => {
         const { MapContainer, TileLayer, GeoJSON } = mod;
 
-        // Function to determine polygon styling based on risk level
         const styleGeoJson = (feature: any) => {
             const level = feature.properties.level as "high" | "medium" | "low";
             
-            // This is the core logic that makes the color DYNAMIC based on 'level'
             let color, fillColor, fillOpacity;
 
             switch (level) {
                 case "high":
-                    color = '#dc2626';     // Red border
-                    fillColor = '#ef4444'; // Red fill
+                    color = '#dc2626';
+                    fillColor = '#ef4444';
                     fillOpacity = 0.4;
                     break;
                 case "medium":
-                    color = '#f97316';     // Orange border
-                    fillColor = '#fb923c'; // Orange fill
+                    color = '#f97316';
+                    fillColor = '#fb923c';
                     fillOpacity = 0.3;
                     break;
                 case "low":
-                    color = '#3b82f6';     // Blue border
-                    fillColor = '#60a5fa'; // Blue fill
+                    color = '#3b82f6';
+                    fillColor = '#60a5fa';
                     fillOpacity = 0.2;
                     break;
-                default: // Default style for unknown levels
+                default:
                     color = '#a0a0a0';
                     fillColor = '#cccccc';
                     fillOpacity = 0.1;
@@ -216,7 +190,6 @@ export default function FloodMap() {
             };
         };
         
-        // This function binds a popup to each polygon
         const onEachFeature = (feature: any, layer: L.Layer) => {
             if (feature.properties && feature.properties.Brgy && feature.properties.level) {
                 const levelClass = feature.properties.level === "high" ? "bg-red-600" : feature.properties.level === "medium" ? "bg-orange-600" : "bg-blue-600";
@@ -229,6 +202,26 @@ export default function FloodMap() {
                         </div>
                     </div>`
                 );
+
+                // Add click event to the layer
+                layer.on('click', () => {
+                    if (onBarangayClick && feature.properties.Brgy) {
+                        onBarangayClick(feature.properties.Brgy);
+                    }
+                });
+
+                // Add hover effect
+                layer.on('mouseover',  () => {
+                    this.setStyle({
+                        weight: 3,
+                        opacity: 1,
+                        fillOpacity: 0.7
+                    });
+                });
+
+                layer.on('mouseout',  () => {
+                    this.setStyle(styleGeoJson(feature));
+                });
             }
         };
 
@@ -240,7 +233,6 @@ export default function FloodMap() {
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-            {/* Loop through the state data and render GeoJSON for each feature */}
             {barangayData.map((feature, index) => (
                 <GeoJSON 
                     key={index}
@@ -256,46 +248,31 @@ export default function FloodMap() {
 
       setMapComponent(() => Map);
     });
-  }, [barangayData]); // Map component now re-renders when barangayData changes
+  }, [barangayData, onBarangayClick]);
 
-  // 4. New useEffect hook to simulate dynamic data changes
   useEffect(() => {
-    // --- SIMULATED DYNAMIC DATA FETCH/UPDATE ---
-    // In a real application, you would replace this with:
-    // fetch('/api/flood-risk').then(res => res.json()).then(data => setBarangayData(data.features));
-
-    // For this demonstration, we'll set the initial data after a short delay
-    // AND then simulate an update (e.g., Calamba's risk drops) after another delay
-    
-    // Set initial data
     setBarangayData(initialBarangayFeatures);
 
-    // Simulate an update 5 seconds later
     const updateTimer = setTimeout(() => {
         const updatedData = initialBarangayFeatures.map(feature => {
             if (!feature.properties) {
                 return feature;
             }
             if (feature.properties.Brgy === "Lahug") {
-                // Calamba's risk drops from 'high' to 'medium'
                 return { ...feature, properties: { ...feature.properties, level: 'medium' as const } };
             }
             if (feature.properties.Brgy === "Banilad") {
-                // Labangon's risk increases from 'medium' to 'high'
                 return { ...feature, properties: { ...feature.properties, level: 'high' as const } };
             }
             return feature;
         });
         
         setBarangayData(updatedData);
-        
         console.log("Flood risk levels dynamically updated after 5 seconds.");
+    }, 5000);
 
-    }, 5000); // 5000ms = 5 seconds
-
-    return () => clearTimeout(updateTimer); // Cleanup the timer
-  }, []); // Empty dependency array means this runs only once on mount
-
+    return () => clearTimeout(updateTimer);
+  }, []);
 
   return (
     <Card className="p-0 overflow-hidden">
@@ -310,7 +287,6 @@ export default function FloodMap() {
           />
         </div>
         
-        {/* Legend remains the same */}
         <div className="absolute bottom-4 right-4 z-[400] bg-white p-3 rounded-lg shadow-xl text-xs space-y-1">
           <p className="font-bold mb-1">Flood Risk Area Legend</p>
           <div className="flex items-center">
