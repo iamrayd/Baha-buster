@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Card } from "../ui/Card";
 import "leaflet/dist/leaflet.css";
 
-// This will hold the imported Leaflet library (L)
 let L: typeof import("leaflet") | null = null;
 
 // --- Consolidated GeoJSON Data for All Barangays (Used as the initial/source data) ---
@@ -156,7 +155,6 @@ const initialBarangayFeatures = [
 }
 
 ];
-// --- End Initial GeoJSON Data ---
 
 
 export default function FloodMap() {

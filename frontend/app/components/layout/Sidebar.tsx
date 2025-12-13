@@ -16,22 +16,6 @@ export default function Sidebar() {
           <Home size={20} />
           <span>Dashboard</span>
         </a>
-        <a href="#" className="sidebar-link">
-          <AlertTriangle size={20} />
-          <span>Alerts</span>
-        </a>
-        <a href="#" className="sidebar-link">
-          <FileText size={20} />
-          <span>Reports</span>
-        </a>
-        <a href="#" className="sidebar-link">
-          <Package size={20} />
-          <span>Resources</span>
-        </a>
-        <a href="#" className="sidebar-link">
-          <Settings size={20} />
-          <span>Settings</span>
-        </a>
       </nav>
     </aside>
   );
