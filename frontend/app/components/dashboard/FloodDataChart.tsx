@@ -9,7 +9,7 @@ interface FloodDataChartProps {
 }
 
 // Mock historical data for different barangays (last 7 days)
-const historicalData: Record<string, any[]> = {
+const historicalData: Record<string, { date: string; rain: number; precipitation: number; floodDepth: number }[]> = {
   "Guadalupe": [
     { date: 'Mon', rain: 15, precipitation: 18, floodDepth: 8 },
     { date: 'Tue', rain: 22, precipitation: 25, floodDepth: 12 },

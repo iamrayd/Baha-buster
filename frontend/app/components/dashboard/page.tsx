@@ -20,8 +20,8 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-2 space-y-8">
-              <FloodMap />
-              <QuickStats />
+              <FloodMap data={[]} loading={false} />
+              <QuickStats data={[]} loading={false} />
             </div>
 
             <div className="xl:col-span-1">
