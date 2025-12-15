@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { Card } from "../ui/Card";
 import {
-  LineChart,
-  Line,
+  AreaChart, // Changed from LineChart
+  Area,      // Changed from Line
   XAxis,
   YAxis,
   CartesianGrid,
@@ -12,21 +12,25 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Forecast } from "@/app/types";
+import { BarangayFloodData, Forecast } from "@/app/types";
 
 interface FloodDataChartProps {
   barangayName: string | null;
+  data: BarangayFloodData[];
 }
 
-// 1. Define specific types for the Tooltip payload to fix "any" errors
+// --- 1. FIXED TYPES FOR TOOLTIP ---
 interface TooltipPayloadItem {
   name: string;
   value: number | string;
   color: string;
-  unit?: string;
+  payload: {
+    date: string;
+    predicted_flood_depth_cm: number;
+    flood_probability_percent: number;
+  };
 }
 
-// 2. Manual interface to replace the generic TooltipProps
 interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayloadItem[];
@@ -34,130 +38,88 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-  if (active && payload && payload.length) {
+  if (active && payload && payload.length > 0) {
     const formatDate = (dateStr: string) => {
       const date = new Date(dateStr);
       return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     };
 
     return (
-      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-xl text-sm">
-        <p className="font-bold text-gray-800 mb-2">
-          {label ? formatDate(label) : ""}
+      <div className="bg-white/95 backdrop-blur-sm p-4 border border-blue-100 rounded-xl shadow-xl text-sm">
+        <p className="font-bold text-gray-800 mb-3 border-b border-gray-100 pb-2">
+          {label ? formatDate(label) : ""} Forecast
         </p>
-        {/* Now 'entry' is typed as TooltipPayloadItem, so no "implicit any" error */}
-        {payload.map((entry, index) => (
-          <div key={`item-${index}`} className="flex items-center gap-2 mb-1">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-gray-600">{entry.name}:</span>
-            <span className="font-semibold">
-              {entry.value}
-              {entry.name === "Flood Depth" ? " cm" : "%"}
-            </span>
-          </div>
-        ))}
+        <div className="space-y-2">
+          {payload.map((entry, index) => (
+            <div key={`item-${index}`} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full shadow-sm"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-gray-600 font-medium">{entry.name}</span>
+              </div>
+              <span className="font-bold text-gray-900">
+                {typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}
+                {entry.name === "Flood Depth" ? " cm" : "%"}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
   return null;
 };
 
-export default function FloodDataChart({ barangayName }: FloodDataChartProps) {
+export default function FloodDataChart({ barangayName, data }: FloodDataChartProps) {
   const [forecastDays, setForecastDays] = useState<1 | 2 | 3>(3);
-  const [forecastData, setForecastData] = useState<Forecast[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const SPECIFIC_API_URL =
-    process.env.NEXT_PUBLIC_API_SPECIFIC_BARANGAY_URL ||
-    "https://bahabuster-backend.onrender.com/forecast";
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (!barangayName) {
-      setForecastData([]);
-      return;
-    }
+    setIsMounted(true);
+  }, []);
 
-    async function fetchSpecificData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const url = `${SPECIFIC_API_URL}?barangay=${barangayName?.toUpperCase()}`;
-        console.log("Fetching chart data:", url);
+  // INSTANT LOOKUP
+  const selectedBarangayData = barangayName
+    ? data.find((b) => b.barangay.toUpperCase() === barangayName.toUpperCase())
+    : null;
 
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to fetch forecast");
-
-        const data: Forecast[] = await res.json();
-        setForecastData(data);
-      } catch (err) {
-        console.error(err);
-        setError("Unable to load detailed forecast.");
-        setForecastData([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchSpecificData();
-  }, [barangayName, SPECIFIC_API_URL]);
-
-  const chartData = forecastData.slice(0, forecastDays).map((forecast) => ({
-    date: forecast.date,
-    predicted_flood_depth_cm: forecast.predicted_flood_depth_cm,
-    flood_probability_percent: forecast.flood_probability_percent,
-  }));
+  const chartData = selectedBarangayData
+    ? selectedBarangayData.forecasts.slice(0, forecastDays).map((f) => ({
+        date: f.date,
+        predicted_flood_depth_cm: f.predicted_flood_depth_cm,
+        flood_probability_percent: f.flood_probability_percent,
+      }))
+    : [];
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
+  // --- LOADING / EMPTY STATES ---
+  if (!isMounted) return <Card><div className="h-80 bg-gray-50 rounded-lg animate-pulse" /></Card>;
+
   if (!barangayName) {
     return (
       <Card>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Forecast Visualization
-        </h2>
-        <div className="h-80 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
-          <div className="text-center">
-            <div className="text-4xl mb-2">📍</div>
-            <p className="text-gray-600 font-medium">No Area Selected</p>
-            <p className="text-sm text-gray-500 mt-1">
-              Click a barangay on the map to see its 3-day forecast.
-            </p>
-          </div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Forecast Visualization</h2>
+        <div className="h-80 flex flex-col items-center justify-center bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-200">
+          <div className="text-5xl mb-3 opacity-50">🗺️</div>
+          <p className="text-gray-900 font-medium">Select a Barangay</p>
+          <p className="text-sm text-gray-500">Click on the map to view flood risks</p>
         </div>
       </Card>
     );
   }
 
-  if (loading) {
+  if (!selectedBarangayData) {
     return (
       <Card>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          {barangayName} Forecast
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{barangayName} Forecast</h2>
         <div className="h-80 flex items-center justify-center bg-gray-50 rounded-lg">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </Card>
-    );
-  }
-
-  if (forecastData.length === 0) {
-    return (
-      <Card>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          {barangayName} Forecast
-        </h2>
-        <div className="h-80 flex items-center justify-center bg-gray-50 rounded-lg">
-          <p className="text-gray-500">
-            {error || `No forecast data available for ${barangayName}.`}
-          </p>
+          <p className="text-gray-500">No forecast data available.</p>
         </div>
       </Card>
     );
@@ -167,12 +129,15 @@ export default function FloodDataChart({ barangayName }: FloodDataChartProps) {
     <Card>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">
-            {barangayName} Forecast
-          </h2>
-          <p className="text-xs text-gray-500">
-            AI-Predicted Flood Levels & Probability
-          </p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold text-gray-900">{barangayName}</h2>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider text-white
+              ${selectedBarangayData.summary.overall_risk_assessment === 'HIGH' ? 'bg-red-500' : 
+                selectedBarangayData.summary.overall_risk_assessment === 'MEDIUM' ? 'bg-orange-500' : 'bg-blue-500'}`}>
+              {selectedBarangayData.summary.overall_risk_assessment} RISK
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">3-Day Flood Depth & Probability Forecast</p>
         </div>
 
         <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -194,61 +159,90 @@ export default function FloodDataChart({ barangayName }: FloodDataChartProps) {
 
       <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="date"
-              tickFormatter={formatDate}
-              stroke="#9ca3af"
-              fontSize={12}
-              tickMargin={10}
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            {/* 2. VISUAL UPGRADE: GRADIENTS */}
+            <defs>
+              <linearGradient id="colorDepth" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="colorProb" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+            
+            <XAxis 
+              dataKey="date" 
+              tickFormatter={formatDate} 
+              stroke="#9ca3af" 
+              fontSize={12} 
+              tickMargin={10} 
+              axisLine={false}
+              tickLine={false}
             />
+            
+            {/* Left Axis: Flood Depth */}
             <YAxis
               yAxisId="left"
-              stroke="#ef4444"
-              fontSize={12}
+              stroke="#3B82F6"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
               label={{
                 value: "Depth (cm)",
                 angle: -90,
                 position: "insideLeft",
-                style: { fill: "#ef4444", fontSize: 12 },
+                offset: 10, // Adjust label position
+                style: { fill: "#3B82F6", fontSize: 11, fontWeight: 600 },
               }}
+              // 3. SCALE FIX: Ensures graph doesn't look "maxed out" for small values
+              domain={[0, (dataMax: number) => Math.max(dataMax * 1.5, 50)]} 
             />
+
+            {/* Right Axis: Probability */}
             <YAxis
               yAxisId="right"
               orientation="right"
-              stroke="#3b82f6"
-              fontSize={12}
+              stroke="#8B5CF6"
+              fontSize={11}
               unit="%"
+              tickLine={false}
+              axisLine={false}
               domain={[0, 100]}
             />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend wrapperStyle={{ paddingTop: "20px" }} />
 
-            <Line
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '4 4' }} />
+            <Legend iconType="circle" wrapperStyle={{ paddingTop: "15px", fontSize: "12px" }} />
+
+            {/* Depth Area */}
+            <Area
               yAxisId="left"
               type="monotone"
               dataKey="predicted_flood_depth_cm"
               name="Flood Depth"
-              stroke="#ef4444"
+              stroke="#3B82F6"
               strokeWidth={3}
-              dot={{ r: 4, fill: "#ef4444", strokeWidth: 2, stroke: "#fff" }}
-              activeDot={{ r: 6 }}
+              fillOpacity={1}
+              fill="url(#colorDepth)"
+              animationDuration={1500}
             />
-            <Line
+
+            {/* Probability Area */}
+            <Area
               yAxisId="right"
               type="monotone"
               dataKey="flood_probability_percent"
               name="Probability"
-              stroke="#3b82f6"
+              stroke="#8B5CF6"
               strokeWidth={2}
-              strokeDasharray="5 5"
-              dot={{ r: 4, fill: "#3b82f6", strokeWidth: 2, stroke: "#fff" }}
+              strokeDasharray="4 4"
+              fill="url(#colorProb)"
+              animationDuration={1500}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </Card>

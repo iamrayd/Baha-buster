@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { Card } from "../ui/Card";
 import FloodDataChart from "./FloodDataChart";
-import { BarangayFloodData } from "@/app/types";
+import { BarangayFloodData, RiskLevel } from "@/app/types";
 
 // Dynamically import the map to avoid SSR issues
 const LeafletMap = dynamic(() => import("./LeafletMap"), {
@@ -23,6 +23,9 @@ interface FloodMapProps {
 
 export default function FloodMap({ data, loading }: FloodMapProps) {
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
+  
+  // NEW: Manage the filter state here
+  const [riskFilter, setRiskFilter] = useState<RiskLevel | "ALL">("ALL");
 
   return (
     <div className="space-y-6">
@@ -57,6 +60,9 @@ export default function FloodMap({ data, loading }: FloodMapProps) {
             data={data}
             onBarangayClick={setSelectedBarangay}
             selectedBarangay={selectedBarangay}
+            // Pass the filter props required by LeafletMap
+            riskFilter={riskFilter}
+            setRiskFilter={setRiskFilter}
           />
         </Suspense>
 
@@ -120,7 +126,7 @@ export default function FloodMap({ data, loading }: FloodMapProps) {
 
       {/* Chart Component */}
       {data.length > 0 ? (
-        <FloodDataChart barangayName={selectedBarangay} />
+        <FloodDataChart barangayName={selectedBarangay} data={data} />
       ) : selectedBarangay ? (
         <Card>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">

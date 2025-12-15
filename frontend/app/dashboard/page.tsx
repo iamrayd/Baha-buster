@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic"; // 1. Import dynamic
+import dynamic from "next/dynamic";
 import Sidebar from "@/app/components/layout/Sidebar";
 import QuickStats from "@/app/components/dashboard/QuickStats";
 import RealTimeAlerts from "@/app/components/dashboard/RealTimeAlerts";
 import FloodDataChart from "@/app/components/dashboard/FloodDataChart";
-import { BarangayFloodData } from "@/app/types";
+import { BarangayFloodData, RiskLevel } from "@/app/types";
 
-// 2. Dynamically import the Map component with SSR disabled
+// Dynamically import LeafletMap with SSR disabled
 const LeafletMap = dynamic(
   () => import("@/app/components/dashboard/LeafletMap"),
   { 
@@ -21,59 +21,69 @@ const LeafletMap = dynamic(
   }
 );
 
+const CACHE_KEY = "baha_buster_data_v1";
+
 export default function DashboardPage() {
   const [data, setData] = useState<BarangayFloodData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMessage, setLoadingMessage] = useState("Loading Dashboard...");
+  const [statusMessage, setStatusMessage] = useState("Loading...");
   const [error, setError] = useState<string | null>(null);
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
+  
+  // NEW: Filter State (ALL, HIGH, MEDIUM, LOW)
+  const [riskFilter, setRiskFilter] = useState<RiskLevel | "ALL">("ALL");
 
   const API_ALL_URL = process.env.NEXT_PUBLIC_API_URL || "https://bahabuster-backend.onrender.com/forecasts/all";
 
   useEffect(() => {
     let isMounted = true;
 
-    async function fetchDashboardDataWithRetry(retries = 3, delay = 3000) {
-      if (!isMounted) return;
-      
-      setLoading(true);
-      setError(null);
-
-      for (let i = 0; i < retries; i++) {
+    async function fetchData() {
+      // 1. Try Cache
+      const cachedData = localStorage.getItem(CACHE_KEY);
+      if (cachedData) {
         try {
-          if (i > 0) setLoadingMessage(`Waking up server (Attempt ${i + 1}/${retries})...`);
-          
-          const res = await fetch(API_ALL_URL);
-
-          if (!res.ok) throw new Error(`API Error: ${res.status}`);
-
-          const jsonData: BarangayFloodData[] = await res.json();
-          
-          if (isMounted) {
-            setData(jsonData);
+          const parsed = JSON.parse(cachedData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log("⚡ Loaded data from cache");
+            setData(parsed);
             setLoading(false);
-            return;
           }
-        } catch (err) {
-          console.error(`Attempt ${i + 1} failed:`, err);
-          if (i === retries - 1 && isMounted) {
-            setError(err instanceof Error ? err.message : "Connection failed");
-            setLoading(false);
-          } else {
-            await new Promise((resolve) => setTimeout(resolve, delay));
-          }
+        } catch (e) {
+          console.error("Cache parse error", e);
+        }
+      }
+
+      // 2. Fetch Fresh
+      try {
+        if (!data.length) setStatusMessage("Connecting to server...");
+        
+        const res = await fetch(API_ALL_URL);
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        
+        const jsonData: BarangayFloodData[] = await res.json();
+        
+        if (isMounted) {
+          console.log("✅ Fresh data received");
+          setData(jsonData);
+          setLoading(false);
+          localStorage.setItem(CACHE_KEY, JSON.stringify(jsonData));
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        if (isMounted && data.length === 0) {
+          setError("Server is sleeping or offline. Please wait a moment and retry.");
         }
       }
     }
 
-    fetchDashboardDataWithRetry();
-    
-    const interval = setInterval(() => fetchDashboardDataWithRetry(1), 300000);
+    fetchData();
+    const interval = setInterval(fetchData, 300000);
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [API_ALL_URL]);
+  }, []);
 
   return (
     <div className="flex">
@@ -86,18 +96,18 @@ export default function DashboardPage() {
               Overview of current flood risks and disaster response activities in Cebu City.
             </p>
             
-            {loading && !data.length && (
-              <div className="mt-4 p-4 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 text-sm flex items-center gap-3">
+            {loading && data.length === 0 && (
+              <div className="mt-4 p-4 bg-blue-50 text-blue-700 rounded-lg flex items-center gap-3 animate-pulse">
                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <span>{loadingMessage}</span>
+                <span>{statusMessage}</span>
               </div>
             )}
 
-            {error && !loading && (
-              <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm">
-                <p className="font-semibold">⚠️ Connection Error: {error}</p>
-                <button onClick={() => window.location.reload()} className="mt-2 text-xs underline hover:text-red-800">
-                  Retry Connection
+            {error && data.length === 0 && (
+              <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
+                <p className="font-semibold">⚠️ {error}</p>
+                <button onClick={() => window.location.reload()} className="mt-2 text-xs underline">
+                  Reload Page
                 </button>
               </div>
             )}
@@ -105,16 +115,16 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-2 space-y-8">
-              {/* Map Component */}
+              {/* Updated Map Component with Filter Props */}
               <LeafletMap 
                 data={data} 
                 onBarangayClick={setSelectedBarangay}
                 selectedBarangay={selectedBarangay}
+                riskFilter={riskFilter}
+                setRiskFilter={setRiskFilter}
               />
               
-              {/* Chart Component */}
-              <FloodDataChart barangayName={selectedBarangay} />
-
+              <FloodDataChart barangayName={selectedBarangay} data={data} />
               <QuickStats data={data} loading={loading} />
             </div>
             
