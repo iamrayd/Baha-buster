@@ -1,8 +1,6 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "./components/layout/Sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,10 +25,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} antialiased bg-gray-50`}>
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 ml-64 min-h-screen">{children}</main>
-        </div>
+        {children}
       </body>
     </html>
   );
