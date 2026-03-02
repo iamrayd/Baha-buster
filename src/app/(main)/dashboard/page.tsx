@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import Sidebar from "@/src/components/layout/Sidebar";
 import QuickStats from "@/src/features/dashboard/QuickStats";
 import RealTimeAlerts from "@/src/features/alerts/RealTimeAlerts";
 import FloodDataChart from "@/src/features/dashboard/FloodDataChart";
 import { BarangayFloodData, RiskLevel } from "@/src/types/global";
+import Link from "next/link";
 
 const LeafletMap = dynamic(
   () => import("@/src/features/flood-map/components/LeafletMap"),
@@ -79,23 +79,42 @@ export default function DashboardPage() {
 
   return (
     <div className="flex">
-      <main className="flex-1 ml-64 min-h-screen bg-gray-50">
+      <main className="flex-1 min-h-screen bg-gray-50">
         <div className="p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-1">
-              Overview of current flood risks and disaster response activities in Cebu City.
-            </p>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600 mt-1">
+                Overview of current flood risks and disaster response activities in Cebu City.
+              </p>
+            </div>
 
+            <div className="flex gap-4">
+              <Link 
+                href="/login" 
+                className="px-6 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors shadow-sm font-medium"
+              >
+                Sign In
+              </Link>
+              <Link 
+                href="/signup" 
+                className="px-6 py-2 text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors shadow-sm font-medium"
+              >
+                Sign Up
+              </Link>
+            </div>
+
+            {/* Loading State */}
             {loading && data.length === 0 && (
-              <div className="mt-4 p-4 bg-blue-50 text-blue-700 rounded-lg flex items-center gap-3 animate-pulse">
+              <div className="mt-4 p-4 w-full bg-blue-50 text-blue-700 rounded-lg flex items-center gap-3 animate-pulse sm:order-last sm:col-span-2">
                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 <span>{statusMessage}</span>
               </div>
             )}
 
+            {/* Error State */}
             {error && data.length === 0 && (
-              <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
+              <div className="mt-4 p-4 w-full bg-red-50 text-red-700 rounded-lg sm:order-last sm:col-span-2">
                 <p className="font-semibold">⚠️ {error}</p>
                 <button
                   onClick={() => window.location.reload()}
