@@ -80,7 +80,7 @@ export default function DashboardPage() {
   return (
     <div className="flex">
       <main className="flex-1 min-h-screen bg-gray-50">
-        <div className="p-8">
+        <div className="">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>

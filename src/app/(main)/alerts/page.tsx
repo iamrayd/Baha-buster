@@ -56,7 +56,7 @@ export default function AlertsPage() {
   );
 
   return (
-    <div className="max-w-4xl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
