@@ -120,7 +120,7 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
               {selectedBarangayData.summary.overall_risk_assessment} RISK
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">3-Day Flood Depth & Probability Forecast</p>
+            <p className="text-xs text-gray-500 mt-1">{forecastDays}-Day Flood Depth & Probability Forecast</p>
         </div>
         <div className="flex bg-gray-100 p-1 rounded-lg">
           {([1, 2, 3] as const).map((day) => (

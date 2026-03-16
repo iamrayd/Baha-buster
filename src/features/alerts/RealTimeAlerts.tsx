@@ -12,7 +12,8 @@ export default function RealTimeAlerts({ data, loading }: RealTimeAlertsProps) {
   const alerts = data
     .filter((item) =>
       item.summary.overall_risk_assessment === "HIGH" ||
-      item.summary.overall_risk_assessment === "MEDIUM"
+      item.summary.overall_risk_assessment === "MEDIUM" ||
+      item.summary.overall_risk_assessment === "LOW"
     )
     .sort((a) => (a.summary.overall_risk_assessment === "HIGH" ? -1 : 1));
 
