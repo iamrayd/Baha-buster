@@ -6,6 +6,7 @@ import QuickStats from "@/src/features/dashboard/QuickStats";
 import RealTimeAlerts from "@/src/features/alerts/RealTimeAlerts";
 import FloodDataChart from "@/src/features/dashboard/FloodDataChart";
 import { BarangayFloodData, RiskLevel } from "@/src/types/global";
+import { fetchAllForecasts } from "@/src/services/api";
 import Link from "next/link";
 
 const LeafletMap = dynamic(
@@ -30,10 +31,6 @@ export default function DashboardPage() {
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskLevel | "ALL">("ALL");
 
-  const API_ALL_URL =
-    process.env.NEXT_PUBLIC_API_URL ||
-    "https://bahabuster-backend.onrender.com/forecasts/all";
-
   useEffect(() => {
     let isMounted = true;
 
@@ -53,9 +50,7 @@ export default function DashboardPage() {
 
       try {
         if (!data.length) setStatusMessage("Connecting to server...");
-        const res = await fetch(API_ALL_URL);
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
-        const jsonData: BarangayFloodData[] = await res.json();
+        const jsonData = await fetchAllForecasts();
         if (isMounted) {
           setData(jsonData);
           setLoading(false);

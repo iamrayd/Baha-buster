@@ -2,18 +2,72 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { signup } from "@/src/services/api";
+
+// List of barangays from the API data
+const BARANGAYS = [
+  "BANILAD", "ERMITA", "MABOLO", "MAMBALING", "SAN ROQUE", "STO. NINO",
+  "SUBA", "TEJERO", "TINAGO", "LAHUG", "GUADALUPE", "LABANGON",
+  "INAYAWAN", "COGON PARDO", "BULACAO PARDO", "BASAK PARDO", "PARDO POB.",
+  "BASAK SAN NICOLAS", "QUIOT PARDO", "PUNTA PRINCESA", "ADLAON", "AGSUNGOT",
+  "APAS", "BABAG", "BACAYAN", "BINALIW", "BONBON", "BUDLAAN", "BUHISAN",
+  "BUSAY", "CALAMBA", "CAMBINOCOT", "CAPITOL SITE", "CARRETA", "COGON RAMOS",
+  "DAY-AS", "GUBA", "HIPODROMO", "KALUBIHAN", "KALUNASAN", "KAMAGAYAN",
+  "CAMPUTHAW", "KASAMBAGAN", "KINASANG-AN PARDO", "LOREGA SAN MIGUEL",
+  "LUSARAN", "MABINI", "MALUBOG", "PAHINA CENTRAL", "PAHINA SAN NICOLAS",
+  "PAMUTAN", "PARIL", "PASIL", "PIT-OS", "PULANGBATO", "PUNG-OL SIBUGAY",
+  "SAMBAG I", "SAMBAG II", "SAN ANTONIO", "SAN JOSE", "SANTA CRUZ",
+  "SAWANG CALERO", "SINSIN", "SIRAO", "SUDLON I", "SUDLON II", "T. PADILLA",
+  "TABUNAN", "TAGBA-O", "TALAMBAN", "TAPTAP", "TISA", "TOONG", "ZAPATERA",
+  "SAPANGDAKU", "BUOT-TAUP", "DULJO", "SANTO NIÑO", "SAN NICOLAS CENTRAL",
+  "PARIAN", "BARRIO LUZ", "SUBA POBLACION"
+].sort();
 
 export default function SignupPage() {
   const router = useRouter();
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    barangay: "",
+    email: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.id]: e.target.value,
+    });
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    // send user data to backend
-    console.log("Creating account...");
+    try {
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      
+      const user = await signup({
+        email: formData.email,
+        name: fullName,
+        password: formData.password,
+        barangay: formData.barangay,
+      });
 
-    // Reroute to the signin after successful signup
-    router.push("/login");
+      // Store user data
+      localStorage.setItem("user_data", JSON.stringify(user));
+
+      // Show success message or redirect to login
+      router.push("/login");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -33,6 +87,12 @@ export default function SignupPage() {
           <p className="text-sm text-gray-500 mt-1">Join Baha-Buster to get real-time flood alerts</p>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSignUp} className="space-y-4">
           <div className="flex gap-4">
             <div className="w-1/2">
@@ -43,8 +103,11 @@ export default function SignupPage() {
                 id="firstName"
                 type="text"
                 placeholder="Juan"
+                value={formData.firstName}
+                onChange={handleChange}
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-colors text-sm"
                 required
+                disabled={loading}
               />
             </div>
             <div className="w-1/2">
@@ -55,8 +118,11 @@ export default function SignupPage() {
                 id="lastName"
                 type="text"
                 placeholder="Dela Cruz"
+                value={formData.lastName}
+                onChange={handleChange}
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-colors text-sm"
                 required
+                disabled={loading}
               />
             </div>
           </div>
@@ -65,13 +131,21 @@ export default function SignupPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="barangay">
               Barangay
             </label>
-            <input
+            <select
               id="barangay"
-              type="text"
-              placeholder="Talamban"
+              value={formData.barangay}
+              onChange={handleChange}
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-colors text-sm"
               required
-            />
+              disabled={loading}
+            >
+              <option value="">Select your barangay</option>
+              {BARANGAYS.map((barangay) => (
+                <option key={barangay} value={barangay}>
+                  {barangay}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -82,8 +156,11 @@ export default function SignupPage() {
               id="email"
               type="email"
               placeholder="juan@example.com"
+              value={formData.email}
+              onChange={handleChange}
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-colors text-sm"
               required
+              disabled={loading}
             />
           </div>
 
@@ -94,22 +171,26 @@ export default function SignupPage() {
             <input
               id="password"
               type="password"
+              value={formData.password}
+              onChange={handleChange}
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-colors text-sm"
               required
+              disabled={loading}
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Create Account
+            {loading ? "Creating Account..." : "Create Account"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Already have an account?{" "}
-          <Link href="/signin" className="text-gray-900 underline hover:text-blue-600 font-medium ">
+          <Link href="/login" className="text-gray-900 underline hover:text-blue-600 font-medium ">
              Sign in
           </Link>
         </p>

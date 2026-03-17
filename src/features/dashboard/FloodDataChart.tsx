@@ -71,12 +71,18 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
     ? data.find((b) => b.barangay.toUpperCase() === barangayName.toUpperCase())
     : null;
 
-  const chartData = selectedBarangayData
-    ? selectedBarangayData.forecasts.slice(0, forecastDays).map((f) => ({
-        date: f.date,
-        predicted_flood_depth_cm: f.predicted_flood_depth_cm,
-        flood_probability_percent: f.flood_probability_percent,
-      }))
+  const chartData = selectedBarangayData?.predictions
+    ? selectedBarangayData.predictions.slice(0, forecastDays).map((p) => {
+        // Create a real date object based on the "day" number (Day 1 = Today)
+        const forecastDate = new Date();
+        forecastDate.setDate(forecastDate.getDate() + (p.day - 1));
+
+        return {
+          date: forecastDate.toISOString(),
+          predicted_flood_depth_cm: p.predicted_depth_cm,
+          flood_probability_percent: p.flood_probability * 100,
+        };
+      })
     : [];
 
   const formatDate = (dateStr: string) =>
@@ -108,6 +114,9 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
     );
   }
 
+  // FIXED: Extract risk safely from predictions array
+  const riskLevel = selectedBarangayData.predictions?.[0]?.risk_level || "LOW";
+
   return (
     <Card>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
@@ -115,9 +124,9 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold text-gray-900">{barangayName}</h2>
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider text-white
-              ${selectedBarangayData.summary.overall_risk_assessment === "HIGH" ? "bg-red-500" :
-                selectedBarangayData.summary.overall_risk_assessment === "MEDIUM" ? "bg-orange-500" : "bg-blue-500"}`}>
-              {selectedBarangayData.summary.overall_risk_assessment} RISK
+              ${riskLevel === "HIGH" ? "bg-red-500" :
+                riskLevel === "MEDIUM" ? "bg-orange-500" : "bg-blue-500"}`}>
+              {riskLevel} RISK
             </span>
           </div>
             <p className="text-xs text-gray-500 mt-1">{forecastDays}-Day Flood Depth & Probability Forecast</p>

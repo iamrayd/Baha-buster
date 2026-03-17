@@ -7,8 +7,10 @@ interface QuickStatsProps {
 }
 
 export default function QuickStats({ data, loading }: QuickStatsProps) {
-  const highRiskCount = data.filter((d) => d.summary.overall_risk_assessment === "HIGH").length;
-  const mediumRiskCount = data.filter((d) => d.summary.overall_risk_assessment === "MEDIUM").length;
+  // FIXED: Accessing predictions[0].risk_level safely instead of summary.overall_risk_assessment
+  const highRiskCount = data.filter((d) => d.predictions?.[0]?.risk_level === "HIGH").length;
+  const mediumRiskCount = data.filter((d) => d.predictions?.[0]?.risk_level === "MEDIUM").length;
+  
   const activeAlerts = highRiskCount + mediumRiskCount;
   const areasMonitored = data.length;
   const teamsDeployed = Math.ceil(activeAlerts * 1.5);

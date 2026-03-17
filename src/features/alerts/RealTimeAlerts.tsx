@@ -9,13 +9,21 @@ interface RealTimeAlertsProps {
 }
 
 export default function RealTimeAlerts({ data, loading }: RealTimeAlertsProps) {
+  // FIXED: Filter and sort using predictions[0].risk_level instead of summary
   const alerts = data
-    .filter((item) =>
-      item.summary.overall_risk_assessment === "HIGH" ||
-      item.summary.overall_risk_assessment === "MEDIUM" ||
-      item.summary.overall_risk_assessment === "LOW"
-    )
-    .sort((a) => (a.summary.overall_risk_assessment === "HIGH" ? -1 : 1));
+    .filter((item) => {
+      const risk = item.predictions?.[0]?.risk_level;
+      return risk === "HIGH" || risk === "MEDIUM" || risk === "LOW";
+    })
+    .sort((a, b) => {
+      // Sort so HIGH risks appear at the top
+      const riskA = a.predictions?.[0]?.risk_level || "LOW";
+      const riskB = b.predictions?.[0]?.risk_level || "LOW";
+      
+      if (riskA === "HIGH" && riskB !== "HIGH") return -1;
+      if (riskA !== "HIGH" && riskB === "HIGH") return 1;
+      return 0;
+    });
 
   return (
     <Card className="h-full max-h-[600px] flex flex-col">
@@ -35,22 +43,29 @@ export default function RealTimeAlerts({ data, loading }: RealTimeAlertsProps) {
             <p className="text-sm">No critical flood risks detected.</p>
           </div>
         ) : (
-          alerts.map((alert, idx) => (
-            <div
-              key={`${alert.barangay}-${idx}`}
-              className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition border border-gray-100"
-            >
-              <div>
-                <p className="font-bold text-gray-800">{alert.barangay}</p>
-                <p className="text-xs text-gray-500">
-                  Depth: {alert.forecasts[0]?.predicted_flood_depth_cm} cm
-                </p>
+          alerts.map((alert, idx) => {
+            // FIXED: Safely extract today's prediction data
+            const prediction = alert.predictions?.[0];
+            const riskLevel = prediction?.risk_level || "LOW";
+            const depth = prediction?.predicted_depth_cm || 0;
+
+            return (
+              <div
+                key={`${alert.barangay}-${idx}`}
+                className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition border border-gray-100"
+              >
+                <div>
+                  <p className="font-bold text-gray-800">{alert.barangay}</p>
+                  <p className="text-xs text-gray-500">
+                    Depth: {depth} cm
+                  </p>
+                </div>
+                <Badge variant={riskLevel.toLowerCase() as "high" | "medium" | "low"}>
+                  {riskLevel}
+                </Badge>
               </div>
-              <Badge variant={alert.summary.overall_risk_assessment.toLowerCase() as "high" | "medium" | "low"}>
-                {alert.summary.overall_risk_assessment}
-              </Badge>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </Card>

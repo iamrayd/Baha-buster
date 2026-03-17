@@ -1,30 +1,45 @@
 export type RiskLevel = "HIGH" | "MEDIUM" | "LOW";
 
-export interface Forecast {
+export interface Prediction {
   day: number;
-  date: string;
-  predicted_flood_depth_cm: number;
+  flood_probability: number;
+  predicted_depth_cm: number;
   risk_level: RiskLevel;
-  flood_probability_percent: number;
+  alert: number; // 0 or 1
+  summary: string; // Notice this is a string now, not an object!
 }
 
-export interface RiskDistribution {
-  HIGH: number;
-  MEDIUM: number;
-  LOW: number;
+export interface ClassificationMetrics {
+  f1: number;
+  precision: number;
+  recall: number;
+  auc: number;
+  confusion_matrix: {
+    tn: number;
+    fp: number;
+    fn: number;
+    tp: number;
+  };
 }
 
-export interface Summary {
-  total_predicted_rainfall: number;
-  max_risk_level: RiskLevel;
-  risk_distribution: RiskDistribution;
-  overall_risk_assessment: RiskLevel;
+export interface RegressionMetrics {
+  mae_cm: number | null;
+  r2: number | null;
+}
+
+export interface Metrics {
+  classification: ClassificationMetrics;
+  regression: RegressionMetrics;
 }
 
 export interface BarangayFloodData {
   barangay: string;
-  forecasts: Forecast[];
-  summary: Summary;
+  predictions: Prediction[];
+  metrics: Metrics;
 }
 
-export type ApiResponse = BarangayFloodData[];
+export interface ApiResponse {
+  count: number;
+  barangays: BarangayFloodData[];
+  failed: string[];
+}

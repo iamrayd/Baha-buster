@@ -46,8 +46,8 @@ export default function ResourcesPage() {
       {/* Emergency Hotlines */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-5">
-          <Phone size={18} className="text-red-500" />
-          <h2 className="text-base font-semibold text-red-500">Emergency Hotlines</h2>
+          <Phone size={18} className="text-blue-500" />
+          <h2 className="text-base font-semibold text-blue-500">Emergency Hotlines</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {HOTLINES.map((hotline) => (
@@ -57,10 +57,10 @@ export default function ResourcesPage() {
             >
               <div>
                 <p className="text-sm text-gray-700 font-medium leading-snug">{hotline.name}</p>
-                <p className="text-red-500 font-bold mt-1">{hotline.number}</p>
+                <p className="text-blue-500 font-bold mt-1">{hotline.number}</p>
               </div>
               <div className="ml-4 shrink-0 w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
-                <Phone size={16} className="text-red-400" />
+                <Phone size={16} className="text-blue-400" />
               </div>
             </div>
           ))}

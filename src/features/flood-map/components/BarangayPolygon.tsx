@@ -15,7 +15,8 @@ export default function BarangayPolygons({
         const barangayData = data.find(
           (d) => d.barangay.toUpperCase() === barangay.toUpperCase()
         );
-        const risk = barangayData?.summary.overall_risk_assessment;
+        
+        const risk = barangayData?.predictions?.[0]?.risk_level;
 
         if (riskFilter !== "ALL" && (!risk || risk !== riskFilter)) return null;
 

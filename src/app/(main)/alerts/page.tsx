@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, MapPin, Search, SlidersHorizontal, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { BarangayFloodData, RiskLevel } from "@/src/types/global";
+import { fetchAllForecasts } from "@/src/services/api";
 
 const CACHE_KEY = "baha_buster_data_v1";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://bahabuster-backend.onrender.com/forecasts/all";
 
 type FilterLevel = "ALL" | "HIGH" | "MEDIUM" | "LOW";
 
@@ -60,6 +58,9 @@ function formatDate(dateStr: string): string {
   });
 }
 
+// Helper function to safely extract the risk level for Day 1
+const getRisk = (b: BarangayFloodData): RiskLevel => b.predictions?.[0]?.risk_level || "LOW";
+
 export default function AlertsPage() {
   const [data, setData] = useState<BarangayFloodData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,11 +82,7 @@ export default function AlertsPage() {
       }
     }
 
-    fetch(API_URL)
-      .then((res) => {
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
-        return res.json();
-      })
+    fetchAllForecasts()
       .then((json: BarangayFloodData[]) => {
         setData(json);
         setLoading(false);
@@ -102,26 +99,24 @@ export default function AlertsPage() {
   };
 
   const atRisk = data
-    .filter((b) =>
-      b.summary.overall_risk_assessment === "HIGH" ||
-      b.summary.overall_risk_assessment === "MEDIUM" ||
-      b.summary.overall_risk_assessment === "LOW"
-    )
+    .filter((b) => {
+      const risk = getRisk(b);
+      return risk === "HIGH" || risk === "MEDIUM" || risk === "LOW";
+    })
     .sort((a, b) => {
       const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-      return order[a.summary.overall_risk_assessment] - order[b.summary.overall_risk_assessment];
+      return order[getRisk(a)] - order[getRisk(b)];
     });
 
   const filtered = atRisk.filter((b) => {
     const matchesSearch = b.barangay.toLowerCase().includes(search.toLowerCase());
-    const matchesLevel =
-      filterLevel === "ALL" || b.summary.overall_risk_assessment === filterLevel;
+    const matchesLevel = filterLevel === "ALL" || getRisk(b) === filterLevel;
     return matchesSearch && matchesLevel;
   });
 
-  const highCount = atRisk.filter((b) => b.summary.overall_risk_assessment === "HIGH").length;
-  const mediumCount = atRisk.filter((b) => b.summary.overall_risk_assessment === "MEDIUM").length;
-  const lowCount = atRisk.filter((b) => b.summary.overall_risk_assessment === "LOW").length;
+  const highCount = atRisk.filter((b) => getRisk(b) === "HIGH").length;
+  const mediumCount = atRisk.filter((b) => getRisk(b) === "MEDIUM").length;
+  const lowCount = atRisk.filter((b) => getRisk(b) === "LOW").length;
 
   return (
     <div className="space-y-6">
@@ -207,9 +202,11 @@ export default function AlertsPage() {
           </div>
         ) : (
           filtered.map((barangay) => {
-            const risk = barangay.summary.overall_risk_assessment;
+            // FIXED: Use getRisk() helper
+            const risk = getRisk(barangay);
             const styles = LEVEL_STYLES[risk];
             const isExpanded = expanded[barangay.barangay] ?? false;
+            const currentDepth = barangay.predictions?.[0]?.predicted_depth_cm ?? 0;
 
             return (
               <div
@@ -237,7 +234,8 @@ export default function AlertsPage() {
                       <MapPin size={12} />
                       <span>{barangay.barangay}</span>
                       <span className="mx-1">·</span>
-                      <span>Rainfall: {barangay.summary.total_predicted_rainfall.toFixed(2)} mm</span>
+                      {/* FIXED: Replaced non-existent rainfall with current depth */}
+                      <span>Predicted Depth: {currentDepth.toFixed(2)} cm</span>
                     </div>
                   </div>
 
@@ -261,41 +259,49 @@ export default function AlertsPage() {
                       3-Day Forecast
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {barangay.forecasts.slice(0, 3).map((forecast, index) => (
-                        <div
-                          key={index}
-                          className="bg-white rounded-lg border border-gray-100 px-4 py-3 space-y-2"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-gray-700">
-                              Day {index + 1}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {formatDate(forecast.date)}
-                            </span>
+                      {/* FIXED: Loop over predictions instead of forecasts */}
+                      {barangay.predictions?.slice(0, 3).map((prediction, index) => {
+                        // Create a date based on the prediction day (Day 1 = Today)
+                        const forecastDate = new Date();
+                        forecastDate.setDate(forecastDate.getDate() + (prediction.day - 1));
+
+                        return (
+                          <div
+                            key={index}
+                            className="bg-white rounded-lg border border-gray-100 px-4 py-3 space-y-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-gray-700">
+                                Day {prediction.day}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {formatDate(forecastDate.toISOString())}
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-gray-500">Flood Depth</span>
+                                <span className="font-semibold text-gray-800">
+                                  {prediction.predicted_depth_cm.toFixed(2)} cm
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-gray-500">Probability</span>
+                                <span className="font-semibold text-gray-800">
+                                  {/* FIXED: Converted decimal to percent */}
+                                  {(prediction.flood_probability * 100).toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-gray-500">Risk</span>
+                                <span className={DAY_RISK_COLORS[prediction.risk_level]}>
+                                  {prediction.risk_level}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-500">Flood Depth</span>
-                              <span className="font-semibold text-gray-800">
-                                {forecast.predicted_flood_depth_cm.toFixed(2)} cm
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-500">Probability</span>
-                              <span className="font-semibold text-gray-800">
-                                {forecast.flood_probability_percent.toFixed(1)}%
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-500">Risk</span>
-                              <span className={DAY_RISK_COLORS[forecast.risk_level]}>
-                                {forecast.risk_level}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
