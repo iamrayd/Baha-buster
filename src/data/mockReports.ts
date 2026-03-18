@@ -1,0 +1,88 @@
+import { FloodReport } from "@/src/types/report";
+
+export const MOCK_REPORTS: FloodReport[] = [
+  {
+    id: "RPT-001",
+    severity: "High",
+    description: "Severe flooding on main road, water level reached knee-high. Multiple vehicles stranded.",
+    photos: [
+      "https://images.unsplash.com/photo-1547683905-f686c993aae5?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1590622455244-7afe4c5e1c67?w=400&h=400&fit=crop",
+    ],
+    user_barangay: "Mabolo",
+    user_email: "user1@email.com",
+    timestamp: "2026-03-18T08:42:00",
+    status: "Pending",
+  },
+  {
+    id: "RPT-002",
+    severity: "Medium",
+    description: "Water accumulation near residential area. Ankle-deep flooding observed.",
+    photos: [
+      "https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=400&h=400&fit=crop",
+    ],
+    user_barangay: "Banilad",
+    user_email: "user2@email.com",
+    timestamp: "2026-03-18T07:15:00",
+    status: "Pending",
+  },
+  {
+    id: "RPT-003",
+    severity: "High",
+    description: "Flash flood warning. Rapid water rise in low-lying areas. Residents evacuating.",
+    photos: [
+      "https://images.unsplash.com/photo-1590622455244-7afe4c5e1c67?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1547683905-f686c993aae5?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=400&h=400&fit=crop",
+    ],
+    user_barangay: "Ermita",
+    user_email: "user3@email.com",
+    timestamp: "2026-03-17T23:30:00",
+    status: "Approved",
+  },
+  {
+    id: "RPT-004",
+    severity: "Low",
+    description: "Minor water pooling in street corners. No significant impact to traffic.",
+    photos: [],
+    user_barangay: "Mambaling",
+    user_email: "user4@email.com",
+    timestamp: "2026-03-17T21:55:00",
+    status: "Disapproved",
+  },
+  {
+    id: "RPT-005",
+    severity: "Medium",
+    description: "Moderate flooding in commercial district. Some shops closed due to water entry.",
+    photos: [
+      "https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1590622455244-7afe4c5e1c67?w=400&h=400&fit=crop",
+    ],
+    user_barangay: "San Roque",
+    user_email: "user5@email.com",
+    timestamp: "2026-03-17T18:20:00",
+    status: "Pending",
+  },
+  {
+    id: "RPT-006",
+    severity: "Low",
+    description: "Light rainfall causing small puddles. Drainage system functioning properly.",
+    photos: [],
+    user_barangay: "Suba",
+    user_email: "user6@email.com",
+    timestamp: "2026-03-17T15:10:00",
+    status: "Pending",
+  },
+  {
+    id: "RPT-007",
+    severity: "High",
+    description: "Critical flooding near creek. Water overflowing into nearby homes.",
+    photos: [
+      "https://images.unsplash.com/photo-1547683905-f686c993aae5?w=400&h=400&fit=crop",
+    ],
+    user_barangay: "Sto. Nino",
+    user_email: "user7@email.com",
+    timestamp: "2026-03-17T13:45:00",
+    status: "Approved",
+  },
+];

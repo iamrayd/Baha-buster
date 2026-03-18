@@ -1,8 +1,7 @@
 import { BarangayFloodData } from "@/src/types/global";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://bahabuster-backend-thesis.onrender.com";
+  process.env.NEXT_PUBLIC_API_URL;
 
 export async function fetchAllForecasts(): Promise<BarangayFloodData[]> {
   const res = await fetch(`${API_BASE_URL}/predict_all`);

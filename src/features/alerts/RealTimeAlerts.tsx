@@ -9,14 +9,12 @@ interface RealTimeAlertsProps {
 }
 
 export default function RealTimeAlerts({ data, loading }: RealTimeAlertsProps) {
-  // FIXED: Filter and sort using predictions[0].risk_level instead of summary
   const alerts = data
     .filter((item) => {
       const risk = item.predictions?.[0]?.risk_level;
       return risk === "HIGH" || risk === "MEDIUM" || risk === "LOW";
     })
     .sort((a, b) => {
-      // Sort so HIGH risks appear at the top
       const riskA = a.predictions?.[0]?.risk_level || "LOW";
       const riskB = b.predictions?.[0]?.risk_level || "LOW";
       
