@@ -1,26 +1,31 @@
 import { Card } from "@/src/components/ui/Card";
 import { Badge } from "@/src/components/ui/Badge";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, MapPin } from "lucide-react";
 import { BarangayFloodData } from "@/src/types/global";
 
 interface RealTimeAlertsProps {
   data: BarangayFloodData[];
   loading: boolean;
+  onBarangayClick: (barangay: string) => void;
+  selectedBarangay: string | null;
 }
 
-export default function RealTimeAlerts({ data, loading }: RealTimeAlertsProps) {
+export default function RealTimeAlerts({
+  data,
+  loading,
+  onBarangayClick,
+  selectedBarangay,
+}: RealTimeAlertsProps) {
   const alerts = data
     .filter((item) => {
       const risk = item.predictions?.[0]?.risk_level;
       return risk === "HIGH" || risk === "MEDIUM" || risk === "LOW";
     })
     .sort((a, b) => {
-      const riskA = a.predictions?.[0]?.risk_level || "LOW";
-      const riskB = b.predictions?.[0]?.risk_level || "LOW";
-      
-      if (riskA === "HIGH" && riskB !== "HIGH") return -1;
-      if (riskA !== "HIGH" && riskB === "HIGH") return 1;
-      return 0;
+      const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+      const riskA = a.predictions?.[0]?.risk_level ?? "LOW";
+      const riskB = b.predictions?.[0]?.risk_level ?? "LOW";
+      return order[riskA] - order[riskB];
     });
 
   return (
@@ -30,7 +35,7 @@ export default function RealTimeAlerts({ data, loading }: RealTimeAlertsProps) {
         <h2 className="text-lg font-semibold">Priority Alerts</h2>
       </div>
 
-      <div className="space-y-3 overflow-y-auto pr-2 flex-1">
+      <div className="space-y-2 overflow-y-auto pr-1 flex-1">
         {loading ? (
           <div className="text-center py-10 text-gray-400 text-sm">
             Analyzing satellite data...
@@ -42,30 +47,64 @@ export default function RealTimeAlerts({ data, loading }: RealTimeAlertsProps) {
           </div>
         ) : (
           alerts.map((alert, idx) => {
-            // FIXED: Safely extract today's prediction data
-            const prediction = alert.predictions?.[0];
-            const riskLevel = prediction?.risk_level || "LOW";
-            const depth = prediction?.predicted_depth_cm || 0;
+            const prediction   = alert.predictions?.[0];
+            const riskLevel    = prediction?.risk_level ?? "LOW";
+            const depth        = prediction?.predicted_depth_cm ?? 0;
+            const probability  = prediction?.flood_probability ?? 0;
+            const isSelected   = selectedBarangay === alert.barangay;
 
             return (
-              <div
+              <button
                 key={`${alert.barangay}-${idx}`}
-                className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition border border-gray-100"
+                onClick={() => onBarangayClick(alert.barangay)}
+                className={`
+                  w-full text-left flex items-center justify-between gap-3
+                  px-3 py-3 rounded-lg border transition-all
+                  ${isSelected
+                    ? "bg-blue-50 border-blue-300 shadow-sm"
+                    : "bg-gray-50 border-gray-100 hover:bg-gray-100 hover:border-gray-200"
+                  }
+                `}
               >
-                <div>
-                  <p className="font-bold text-gray-800">{alert.barangay}</p>
-                  <p className="text-xs text-gray-500">
-                    Depth: {depth} cm
-                  </p>
+                {/* Left: barangay info */}
+                <div className="flex items-start gap-2 min-w-0">
+                  <MapPin
+                    size={14}
+                    className={`shrink-0 mt-0.5 ${isSelected ? "text-blue-500" : "text-gray-400"}`}
+                  />
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 text-sm truncate">
+                      {alert.barangay}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-xs text-gray-500">
+                        Depth: <span className="font-medium text-gray-700">{depth.toFixed(1)} cm</span>
+                      </span>
+                      <span className="text-gray-300 text-xs">|</span>
+                      <span className="text-xs text-gray-500">
+                        Prob: <span className="font-medium text-gray-700">{(probability * 100).toFixed(1)}%</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <Badge variant={riskLevel.toLowerCase() as "high" | "medium" | "low"}>
-                  {riskLevel}
-                </Badge>
-              </div>
+
+                {/* Right: risk badge */}
+                <div className="shrink-0">
+                  <Badge variant={riskLevel.toLowerCase() as "high" | "medium" | "low"}>
+                    {riskLevel}
+                  </Badge>
+                </div>
+              </button>
             );
           })
         )}
       </div>
+
+      {alerts.length > 0 && !loading && (
+        <p className="text-xs text-gray-400 text-center mt-3 shrink-0 pt-3 border-t border-gray-100">
+          Click a barangay to zoom in on the map
+        </p>
+      )}
     </Card>
   );
 }

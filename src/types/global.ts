@@ -5,8 +5,8 @@ export interface Prediction {
   flood_probability: number;
   predicted_depth_cm: number;
   risk_level: RiskLevel;
-  alert: number; // 0 or 1
-  summary: string; // Notice this is a string now, not an object!
+  alert: number;
+  summary: string;
 }
 
 export interface ClassificationMetrics {
