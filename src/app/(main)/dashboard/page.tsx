@@ -45,7 +45,7 @@ export default function DashboardPage() {
   // Ref to the map so alert clicks can trigger flyTo
   const mapRef = useRef<LeafletMapHandle>(null);
 
-  // ── Auth ────────────────────────────────────────────────────────────────
+  // Auth
   useEffect(() => {
     const userData = localStorage.getItem("user_data");
     if (userData) {
@@ -74,7 +74,7 @@ export default function DashboardPage() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // ── Data fetching ────────────────────────────────────────────────────────
+  // Fetch data
   useEffect(() => {
     let isMounted = true;
 
@@ -114,16 +114,15 @@ export default function DashboardPage() {
       isMounted = false;
       clearInterval(interval);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Alert click — select barangay AND fly map to it ──────────────────────
+  // Zoom in on map on alert click
   function handleAlertBarangayClick(barangay: string) {
     setSelectedBarangay(barangay);
     mapRef.current?.flyToBarangay(barangay);
   }
 
-  // ── Map polygon click — just select barangay (no extra fly needed) ───────
+  // Map polygon click — just select barangay
   function handleMapBarangayClick(barangay: string) {
     setSelectedBarangay(barangay);
   }
@@ -133,7 +132,7 @@ export default function DashboardPage() {
       <main className="flex-1 min-h-screen bg-gray-50">
         <div className="">
 
-          {/* ── Header ────────────────────────────────────────────────────── */}
+          {/* Header*/}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>

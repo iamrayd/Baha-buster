@@ -12,7 +12,7 @@ import {
   Plus,
 } from "lucide-react";
 import { BarangayFloodData, RiskLevel } from "@/src/types/global";
-import { fetchAllForecasts } from "@/src/services/api";
+import { fetchAllForecasts, User } from "@/src/services/api";
 import AddAlertModal from "@/src/features/alerts/AddAlertModal";
 
 const CACHE_KEY = "baha_buster_data_v1";
@@ -74,13 +74,26 @@ const getRisk = (b: BarangayFloodData): RiskLevel =>
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AlertsPage() {
-  const [data, setData]           = useState<BarangayFloodData[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState("");
+  const [data, setData]               = useState<BarangayFloodData[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [search, setSearch]           = useState("");
   const [filterLevel, setFilterLevel] = useState<FilterLevel>("ALL");
-  const [expanded, setExpanded]   = useState<Record<string, boolean>>({});
-  const [showModal, setShowModal] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [expanded, setExpanded]       = useState<Record<string, boolean>>({});
+  const [showModal, setShowModal]     = useState(false);
+  const [successMsg, setSuccessMsg]   = useState<string | null>(null);
+  const [user, setUser]               = useState<User | null>(null);
+
+  // ── Resolve auth from localStorage ────────────────────────────────────────
+  useEffect(() => {
+    const raw = localStorage.getItem("user_data");
+    if (raw) {
+      try {
+        setUser(JSON.parse(raw) as User);
+      } catch {
+        // malformed — treat as guest
+      }
+    }
+  }, []);
 
   // ── Data fetch ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -120,10 +133,6 @@ export default function AlertsPage() {
     setExpanded((prev) => ({ ...prev, [barangay]: !prev[barangay] }));
   }
 
-  function handleAlertSuccess() {
-    setSuccessMsg("Alert sent successfully!");
-  }
-
   // ── Derived data ───────────────────────────────────────────────────────────
   const atRisk = data
     .filter((b) => {
@@ -151,7 +160,7 @@ export default function AlertsPage() {
 
       {/* ── Success toast ───────────────────────────────────────────────── */}
       {successMsg && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-green-600 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-green-600 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg">
           <CheckCircle size={17} />
           {successMsg}
         </div>
@@ -192,17 +201,22 @@ export default function AlertsPage() {
               <option value="MEDIUM">Medium Only</option>
               <option value="LOW">Low Only</option>
             </select>
-            <SlidersHorizontal size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <SlidersHorizontal
+              size={14}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
           </div>
 
-          {/* Add Alert button */}
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
-          >
-            <Plus size={16} />
-            Add Alert
-          </button>
+          {/* Add Alert — only visible to logged-in users */}
+          {user && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+            >
+              <Plus size={16} />
+              Add Alert
+            </button>
+          )}
         </div>
       </div>
 
@@ -250,7 +264,8 @@ export default function AlertsPage() {
                 : "No active flood alerts."}
             </p>
             <p className="text-sm text-gray-400 mt-1">
-              {!search && filterLevel === "ALL" && "All barangays are currently at low risk."}
+              {!search && filterLevel === "ALL" &&
+                "All barangays are currently at low risk."}
             </p>
           </div>
         ) : (
@@ -267,7 +282,9 @@ export default function AlertsPage() {
               >
                 {/* Main row */}
                 <div className="px-5 py-4 flex items-center gap-4">
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${styles.iconBg}`}>
+                  <div
+                    className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${styles.iconBg}`}
+                  >
                     <AlertTriangle size={20} className={styles.iconColor} />
                   </div>
 
@@ -276,7 +293,9 @@ export default function AlertsPage() {
                       <span className="font-semibold text-gray-900 text-sm">
                         {getAlertTitle(risk)}
                       </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles.badge}`}>
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles.badge}`}
+                      >
                         {risk}
                       </span>
                     </div>
@@ -309,7 +328,9 @@ export default function AlertsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {barangay.predictions?.slice(0, 3).map((prediction, index) => {
                         const forecastDate = new Date();
-                        forecastDate.setDate(forecastDate.getDate() + (prediction.day - 1));
+                        forecastDate.setDate(
+                          forecastDate.getDate() + (prediction.day - 1)
+                        );
 
                         return (
                           <div
@@ -360,7 +381,7 @@ export default function AlertsPage() {
       {showModal && (
         <AddAlertModal
           onClose={() => setShowModal(false)}
-          onSuccess={handleAlertSuccess}
+          onSuccess={() => setSuccessMsg("Alert sent successfully!")}
         />
       )}
     </div>

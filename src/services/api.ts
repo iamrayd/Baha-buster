@@ -14,10 +14,49 @@ if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
   console.log("  - REPORTS_API_BASE_URL:", REPORTS_API_BASE_URL);
 }
 
+// ─── Session helpers ──────────────────────────────────────────────────────────
+
+export function clearSession() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("user_data");
+  localStorage.removeItem("auth_token");
+}
+
+export function isLoggedIn(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!localStorage.getItem("user_data");
+}
+
+// ─── Network-aware fetch ──────────────────────────────────────────────────────
+//
+// Used for every call that requires the server to be reachable.
+// If the request fails due to a network error (server offline / not running),
+// the user session is cleared and the page redirects to /login.
+// HTTP error responses (4xx / 5xx) are NOT treated as offline — only a
+// TypeError (fetch failed, no response at all) triggers the logout.
+
+async function fetchWithOfflineGuard(
+  input: RequestInfo,
+  init?: RequestInit
+): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (err) {
+    // TypeError means no response was received — server is down / unreachable.
+    if (err instanceof TypeError) {
+      clearSession();
+      if (typeof window !== "undefined") {
+        window.location.href = "/login?reason=offline";
+      }
+    }
+    throw err;
+  }
+}
+
 // ─── Forecasts ────────────────────────────────────────────────────────────────
 
 export async function fetchAllForecasts(): Promise<BarangayFloodData[]> {
-  const res = await fetch(`${API_BASE_URL}/predict_all`);
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/predict_all`);
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   const data = await res.json();
   return data.barangays || [];
@@ -54,7 +93,7 @@ export interface AuthResponse {
 }
 
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
-  const res = await fetch(`${API_BASE_URL}/login`, {
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
@@ -95,7 +134,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
 }
 
 export async function signup(data: SignupData): Promise<User> {
-  const res = await fetch(`${API_BASE_URL}/users`, {
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -116,14 +155,13 @@ export async function signup(data: SignupData): Promise<User> {
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  const res = await fetch(`${API_BASE_URL}/users`);
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/users`);
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   return res.json();
 }
 
-// ─── Alerts ───────────────────────────────────────────────────────────────────
 
-export type AlertSeverity = "low" | "moderate" | "high" | "critical";
+export type AlertSeverity = "low" | "moderate" | "high";
 export type AlertStatus   = "active" | "resolved" | "inactive";
 
 export interface CreateAlertPayload {
@@ -141,7 +179,7 @@ export interface AlertRecord extends CreateAlertPayload {
 }
 
 export async function createAlert(payload: CreateAlertPayload): Promise<AlertRecord> {
-  const res = await fetch(`${API_BASE_URL}/alerts`, {
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/alerts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -160,8 +198,6 @@ export async function createAlert(payload: CreateAlertPayload): Promise<AlertRec
 
   return res.json();
 }
-
-// ─── Reports ──────────────────────────────────────────────────────────────────
 
 export interface Report {
   report_id: number;
@@ -194,7 +230,7 @@ const ALL_BARANGAYS = [
 ];
 
 export async function getReportsByBarangay(barangay: string): Promise<Report[]> {
-  const res = await fetch(
+  const res = await fetchWithOfflineGuard(
     `${REPORTS_API_BASE_URL}/reports?barangay=${encodeURIComponent(barangay)}`
   );
   if (!res.ok) throw new Error(`Failed to fetch reports: ${res.status}`);
@@ -205,6 +241,8 @@ export async function getReportsByBarangay(barangay: string): Promise<Report[]> 
 export async function getAllReports(): Promise<Report[]> {
   const results = await Promise.allSettled(
     ALL_BARANGAYS.map((barangay) =>
+      // Individual barangay fetches use plain fetch — a single failure
+      // shouldn't log the user out or block the rest.
       fetch(
         `${REPORTS_API_BASE_URL}/reports?barangay=${encodeURIComponent(barangay)}`
       ).then((res) => {
@@ -229,7 +267,7 @@ export async function createReport(reportData: {
   location?: string;
   severity?: string;
 }): Promise<Report> {
-  const res = await fetch(`${REPORTS_API_BASE_URL}/reports`, {
+  const res = await fetchWithOfflineGuard(`${REPORTS_API_BASE_URL}/reports`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(reportData),

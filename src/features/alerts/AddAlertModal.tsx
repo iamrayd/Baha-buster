@@ -24,10 +24,15 @@ const BARANGAYS = [
   "ZAPATERA",
 ].sort();
 
-const SEVERITY_OPTIONS: { value: AlertSeverity; label: string; color: string; bg: string }[] = [
-  { value: "low",      label: "Low",      color: "text-blue-700",   bg: "bg-blue-50 border-blue-200"   },
+const SEVERITY_OPTIONS: {
+  value: AlertSeverity;
+  label: string;
+  color: string;
+  bg: string;
+}[] = [
+  { value: "low",      label: "Low",      color: "text-blue-700",   bg: "bg-blue-50 border-blue-200"     },
   { value: "moderate", label: "Moderate", color: "text-orange-700", bg: "bg-orange-50 border-orange-200" },
-  { value: "high",     label: "High",     color: "text-red-700",    bg: "bg-red-50 border-red-200"     },
+  { value: "high",     label: "High",     color: "text-red-700",    bg: "bg-red-50 border-red-200"       },
 ];
 
 const STATUS_OPTIONS: { value: AlertStatus; label: string }[] = [
@@ -35,8 +40,6 @@ const STATUS_OPTIONS: { value: AlertStatus; label: string }[] = [
   { value: "inactive", label: "Inactive" },
   { value: "resolved", label: "Resolved" },
 ];
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AddAlertModalProps {
   onClose: () => void;
@@ -52,28 +55,23 @@ interface FormState {
 }
 
 const INITIAL_FORM: FormState = {
-  title: "",
-  location: "",
+  title:       "",
+  location:    "",
   description: "",
-  severity: "moderate",
-  status: "active",
+  severity:    "moderate",
+  status:      "active",
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps) {
-  const [form, setForm]       = useState<FormState>(INITIAL_FORM);
+  const [form, setForm]           = useState<FormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError]         = useState<string | null>(null);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  }
-
-  function handleSeveritySelect(value: AlertSeverity) {
-    setForm((prev) => ({ ...prev, severity: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -98,7 +96,11 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send alert. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to send alert. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -107,11 +109,10 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
   const selectedSeverity = SEVERITY_OPTIONS.find((s) => s.value === form.severity)!;
 
   return (
-    /* Backdrop */
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
 
-        {/* ── Header ────────────────────────────────────────────────────── */}
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center">
@@ -119,7 +120,9 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
             </div>
             <div>
               <h2 className="text-base font-semibold text-gray-900">Send Alert</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Broadcast a flood alert to a barangay</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Broadcast a flood alert to a barangay
+              </p>
             </div>
           </div>
           <button
@@ -131,7 +134,7 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
           </button>
         </div>
 
-        {/* ── Form ──────────────────────────────────────────────────────── */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
 
           {/* Error */}
@@ -158,7 +161,7 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
             />
           </div>
 
-          {/* Barangay / Location */}
+          {/* Barangay */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Barangay <span className="text-red-500">*</span>
@@ -203,7 +206,7 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => handleSeveritySelect(opt.value)}
+                  onClick={() => setForm((prev) => ({ ...prev, severity: opt.value }))}
                   disabled={submitting}
                   className={`
                     py-2 text-xs font-semibold rounded-lg border transition-all
@@ -247,17 +250,23 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
             </div>
           </div>
 
-          {/* Preview pill */}
-          <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
-            <span className="text-xs text-gray-500">Preview:</span>
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${selectedSeverity.bg} ${selectedSeverity.color}`}>
+          {/* Live preview strip */}
+          <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100 min-h-[42px]">
+            <span className="text-xs text-gray-400 shrink-0">Preview:</span>
+            <span
+              className={`text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${selectedSeverity.bg} ${selectedSeverity.color}`}
+            >
               {selectedSeverity.label.toUpperCase()}
             </span>
             {form.location && (
-              <span className="text-xs text-gray-600 font-medium">→ {form.location}</span>
+              <span className="text-xs text-gray-600 font-medium shrink-0">
+                → {form.location}
+              </span>
             )}
             {form.title && (
-              <span className="text-xs text-gray-400 truncate">&quot;{form.title}&quot;</span>
+              <span className="text-xs text-gray-400 truncate">
+                &ldquo;{form.title}&rdquo;
+              </span>
             )}
           </div>
 
