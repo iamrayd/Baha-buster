@@ -4,17 +4,17 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://bahabuster-backend-thesis.onrender.com";
 
-const REPORTS_API_BASE_URL = 
+const REPORTS_API_BASE_URL =
   process.env.NEXT_PUBLIC_REPORTS_API_URL ||
   "https://bahabuster-backend-thesis.onrender.com";
 
-// Log API URLs on load (only in development)
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  console.log('🔧 API Configuration:');
-  console.log('  - API_BASE_URL:', API_BASE_URL);
-  console.log('  - REPORTS_API_BASE_URL:', REPORTS_API_BASE_URL);
-  console.log('  - Raw env var:', process.env.NEXT_PUBLIC_API_URL);
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  console.log("🔧 API Configuration:");
+  console.log("  - API_BASE_URL:", API_BASE_URL);
+  console.log("  - REPORTS_API_BASE_URL:", REPORTS_API_BASE_URL);
 }
+
+// ─── Forecasts ────────────────────────────────────────────────────────────────
 
 export async function fetchAllForecasts(): Promise<BarangayFloodData[]> {
   const res = await fetch(`${API_BASE_URL}/predict_all`);
@@ -22,6 +22,8 @@ export async function fetchAllForecasts(): Promise<BarangayFloodData[]> {
   const data = await res.json();
   return data.barangays || [];
 }
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export interface LoginCredentials {
   email: string;
@@ -52,116 +54,63 @@ export interface AuthResponse {
 }
 
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
-  console.log('🌐 Calling login API:', `${API_BASE_URL}/login`);
-  console.log('📤 Request body:', { email: credentials.email, password: '***' });
-  
   const res = await fetch(`${API_BASE_URL}/login`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
   });
-  
-  console.log('📡 Login response status:', res.status);
-  console.log('📡 Login response headers:', Object.fromEntries(res.headers.entries()));
-  
+
   if (!res.ok) {
     let errorMessage = `Server returned ${res.status}`;
     try {
       const error = await res.json();
-      console.error('❌ Login error response:', error);
       errorMessage = error.message || error.detail || errorMessage;
-    } catch (e) {
-      console.error('❌ Could not parse error response');
+    } catch {
+      // response body was not JSON
     }
     throw new Error(errorMessage);
   }
-  
+
   const data = await res.json();
-  console.log('📦 Raw login response data:', JSON.stringify(data, null, 2));
-  console.log('📦 Response keys:', Object.keys(data));
-  
-  // Validate the response structure
-  if (!data) {
-    throw new Error('No data received from login API');
-  }
-  
-  // Handle different possible API response formats
+
+  if (!data) throw new Error("No data received from login API");
+
   let normalizedResponse: AuthResponse = {};
-  
-  // Format 1: { message, user, token }
-  if (data.user && typeof data.user === 'object') {
-    console.log('✅ Found user object in response');
-    normalizedResponse = {
-      message: data.message,
-      user: data.user,
-      token: data.token
-    };
+
+  if (data.user && typeof data.user === "object") {
+    normalizedResponse = { message: data.message, user: data.user, token: data.token };
+  } else if (data.user_id && data.email && data.name) {
+    normalizedResponse = { user: data as User, token: data.token, message: "Login successful" };
+  } else if (data.data?.user) {
+    normalizedResponse = { message: data.message, user: data.data.user, token: data.data.token ?? data.token };
+  } else {
+    throw new Error(`Unexpected API response format. Keys: ${Object.keys(data).join(", ")}`);
   }
-  // Format 2: User object returned directly (no wrapper)
-  else if (data.user_id && data.email && data.name) {
-    console.log('✅ Response is a user object directly');
-    normalizedResponse = {
-      user: data as User,
-      token: data.token || undefined,
-      message: 'Login successful'
-    };
-  }
-  // Format 3: { data: { user, token } }
-  else if (data.data && data.data.user) {
-    console.log('✅ Found user in data.data');
-    normalizedResponse = {
-      message: data.message,
-      user: data.data.user,
-      token: data.data.token || data.token
-    };
-  }
-  // Unexpected format
-  else {
-    console.error('⚠️ Unexpected response structure:', Object.keys(data));
-    console.error('⚠️ Full response:', data);
-    throw new Error(`Unexpected API response format. Keys: ${Object.keys(data).join(', ')}`);
-  }
-  
-  // Final validation
-  if (!normalizedResponse.user) {
-    throw new Error('Could not extract user data from API response');
-  }
-  
-  console.log('✅ Normalized response:', normalizedResponse);
+
+  if (!normalizedResponse.user) throw new Error("Could not extract user data from API response");
+
   return normalizedResponse;
 }
 
 export async function signup(data: SignupData): Promise<User> {
-  console.log('🌐 Calling signup API:', `${API_BASE_URL}/users`);
-  
   const res = await fetch(`${API_BASE_URL}/users`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  
-  console.log('📡 Signup response status:', res.status);
-  
+
   if (!res.ok) {
     let errorMessage = `Server returned ${res.status}`;
     try {
       const error = await res.json();
-      console.error('❌ Signup error response:', error);
       errorMessage = error.message || error.detail || errorMessage;
-    } catch (e) {
-      console.error('❌ Could not parse error response');
+    } catch {
+      // response body was not JSON
     }
     throw new Error(errorMessage);
   }
-  
-  const responseData = await res.json();
-  console.log('📦 Signup response data:', responseData);
-  
-  return responseData;
+
+  return res.json();
 }
 
 export async function getAllUsers(): Promise<User[]> {
@@ -169,6 +118,8 @@ export async function getAllUsers(): Promise<User[]> {
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   return res.json();
 }
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
 
 export interface Report {
   report_id: number;
@@ -181,27 +132,63 @@ export interface Report {
   created_at: string;
 }
 
-export interface ReportsResponse {
-  reports: Report[];
-  total: number;
-  barangay: string;
+// Every barangay available in the system.
+// Kept in sync with the BARANGAYS list in the signup page.
+const ALL_BARANGAYS = [
+  "ADLAON", "AGSUNGOT", "APAS", "BABAG", "BACAYAN", "BANILAD", "BARRIO LUZ",
+  "BASAK PARDO", "BASAK SAN NICOLAS", "BINALIW", "BONBON", "BUDLAAN",
+  "BUHISAN", "BULACAO PARDO", "BUSAY", "BUOT-TAUP", "CALAMBA", "CAMBINOCOT",
+  "CAMPUTHAW", "CAPITOL SITE", "CARRETA", "COGON PARDO", "COGON RAMOS",
+  "DAY-AS", "DULJO", "ERMITA", "GUBA", "GUADALUPE", "HIPODROMO", "INAYAWAN",
+  "KALUBIHAN", "KALUNASAN", "KAMAGAYAN", "KASAMBAGAN", "KINASANG-AN PARDO",
+  "LABANGON", "LAHUG", "LOREGA SAN MIGUEL", "LUSARAN", "MABINI", "MABOLO",
+  "MALUBOG", "MAMBALING", "PAHINA CENTRAL", "PAHINA SAN NICOLAS", "PAMUTAN",
+  "PARIAN", "PARIL", "PASIL", "PIT-OS", "PULANGBATO", "PUNG-OL SIBUGAY",
+  "PUNTA PRINCESA", "PARDO POB.", "QUIOT PARDO", "SAMBAG I", "SAMBAG II",
+  "SAN ANTONIO", "SAN JOSE", "SAN NICOLAS CENTRAL", "SAN ROQUE",
+  "SANTA CRUZ", "SAPANGDAKU", "SAWANG CALERO", "SINSIN", "SIRAO",
+  "STO. NINO", "SUBA", "SUDLON I", "SUDLON II", "T. PADILLA", "TABUNAN",
+  "TAGBA-O", "TALAMBAN", "TAPTAP", "TEJERO", "TINAGO", "TISA", "TOONG",
+  "ZAPATERA",
+];
+
+/**
+ * Fetch reports for a specific barangay.
+ * Used when a user is logged in.
+ */
+export async function getReportsByBarangay(barangay: string): Promise<Report[]> {
+  const res = await fetch(
+    `${REPORTS_API_BASE_URL}/reports?barangay=${encodeURIComponent(barangay)}`
+  );
+
+  if (!res.ok) throw new Error(`Failed to fetch reports: ${res.status}`);
+
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
-export async function getReportsByBarangay(barangay: string): Promise<Report[]> {
-  const res = await fetch(`${REPORTS_API_BASE_URL}/reports?barangay=${encodeURIComponent(barangay)}`);
-  
-  if (!res.ok) {
-    throw new Error(`Failed to fetch reports: ${res.status}`);
-  }
-  
-  const data = await res.json();
-  
-  // The API returns an array directly, not wrapped in an object
-  if (Array.isArray(data)) {
-    return data;
-  }
-  
-  return [];
+/**
+ * Fetch reports for every barangay in parallel and merge the results.
+ * Used for guests since there is no bare /reports endpoint.
+ * Barangays that return no results or errors are silently skipped.
+ */
+export async function getAllReports(): Promise<Report[]> {
+  const results = await Promise.allSettled(
+    ALL_BARANGAYS.map((barangay) =>
+      fetch(
+        `${REPORTS_API_BASE_URL}/reports?barangay=${encodeURIComponent(barangay)}`
+      ).then((res) => {
+        if (!res.ok) return [] as Report[];
+        return res.json().then((data: unknown) =>
+          Array.isArray(data) ? (data as Report[]) : []
+        );
+      })
+    )
+  );
+
+  return results.flatMap((result) =>
+    result.status === "fulfilled" ? result.value : []
+  );
 }
 
 export async function createReport(reportData: {
@@ -214,16 +201,14 @@ export async function createReport(reportData: {
 }): Promise<Report> {
   const res = await fetch(`${REPORTS_API_BASE_URL}/reports`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(reportData),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || error.detail || `Server returned ${res.status}`);
   }
-  
+
   return res.json();
 }
