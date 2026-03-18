@@ -8,6 +8,7 @@ import FloodDataChart from "@/src/features/dashboard/FloodDataChart";
 import { BarangayFloodData, RiskLevel } from "@/src/types/global";
 import { fetchAllForecasts } from "@/src/services/api";
 import Link from "next/link";
+import { User } from "lucide-react";
 
 const LeafletMap = dynamic(
   () => import("@/src/features/flood-map/components/LeafletMap"),
@@ -23,6 +24,13 @@ const LeafletMap = dynamic(
 
 const CACHE_KEY = "baha_buster_data_v1";
 
+interface UserData {
+  user_id: number;
+  email: string;
+  name: string;
+  barangay: string;
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<BarangayFloodData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +38,53 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskLevel | "ALL">("ALL");
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in - with debugging
+    console.log("🔍 Dashboard: Checking authentication...");
+    
+    const userData = localStorage.getItem("user_data");
+    console.log("📦 localStorage user_data:", userData ? "EXISTS" : "NULL");
+    
+    if (userData) {
+      try {
+        const parsed = JSON.parse(userData);
+        console.log("✅ Parsed user data:", parsed);
+        setUser(parsed);
+      } catch (e) {
+        console.error("❌ Error parsing user data:", e);
+      }
+    } else {
+      console.log("ℹ️ No user logged in");
+    }
+    
+    setIsCheckingAuth(false);
+  }, []);
+
+  // Re-check auth when component becomes visible (e.g., after navigation)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("👁️ Page became visible, re-checking auth...");
+        const userData = localStorage.getItem("user_data");
+        if (userData) {
+          try {
+            const parsed = JSON.parse(userData);
+            setUser(parsed);
+            console.log("✅ User still logged in:", parsed.name);
+          } catch (e) {
+            console.error("❌ Error re-parsing user data:", e);
+          }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -72,6 +127,13 @@ export default function DashboardPage() {
     };
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem("user_data"); // clear user session
+    setUser(null); // update UI
+    window.location.href = "/login"; // redirect
+  };
+
+
   return (
     <div className="flex">
       <main className="flex-1 min-h-screen bg-gray-50">
@@ -82,21 +144,38 @@ export default function DashboardPage() {
               <p className="text-gray-600 mt-1">
                 Overview of current flood risks and disaster response activities in Cebu City.
               </p>
+              {user && (
+                <p className="text-sm text-blue-600 mt-2">
+                  Welcome back, <strong>{user.name}</strong>!
+                </p>
+              )}
             </div>
 
             <div className="flex gap-4">
-              <Link 
-                href="/login" 
-                className="px-6 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors shadow-sm font-medium"
-              >
-                Sign In
-              </Link>
-              <Link 
-                href="/signup" 
-                className="px-6 py-2 text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors shadow-sm font-medium"
-              >
-                Sign Up
-              </Link>
+              {user ? (
+                <button 
+                  onClick={() => setShowLogoutConfirm(true)} 
+                  className="flex items-center gap-2 px-6 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors shadow-sm font-medium"
+                >
+                  <User size={18} />
+                  Logout
+                </button>
+              ) : (
+                <>
+                  <Link 
+                    href="/login" 
+                    className="px-6 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors shadow-sm font-medium"
+                  >
+                    Sign In
+                  </Link>
+                  <Link 
+                    href="/signup" 
+                    className="px-6 py-2 text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors shadow-sm font-medium"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Loading State */}
@@ -138,6 +217,38 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        {showLogoutConfirm && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-[9999]">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              Confirm Logout
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to log out?
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  localStorage.removeItem("user_data");
+                  setUser(null);
+                  window.location.href = "/login";
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </main>
     </div>
   );

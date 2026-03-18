@@ -1,9 +1,10 @@
 "use client";
 
-import { Home, AlertTriangle, FileText, Package, Settings } from "lucide-react";
+import { Home, AlertTriangle, FileText, Package, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/src/lib/utils";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
@@ -15,6 +16,13 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userData = localStorage.getItem("user_data");
+    setIsLoggedIn(!!userData);
+  }, []);
 
   return (
     <aside className="w-64 bg-white h-screen border-r border-gray-200 fixed left-0 top-0 z-10">
@@ -37,6 +45,23 @@ export default function Sidebar() {
             <span>{label}</span>
           </Link>
         ))}
+        
+        {/* Profile link - only show when logged in */}
+        {isLoggedIn && (
+          <>
+            <div className="border-t border-gray-200 my-2"></div>
+            <Link
+              href="/profile"
+              className={cn(
+                "sidebar-link",
+                pathname === "/profile" && "sidebar-link-active"
+              )}
+            >
+              <User size={20} />
+              <span>Profile</span>
+            </Link>
+          </>
+        )}
       </nav>
     </aside>
   );

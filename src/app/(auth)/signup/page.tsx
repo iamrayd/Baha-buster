@@ -35,6 +35,7 @@ export default function SignupPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
@@ -43,32 +44,38 @@ export default function SignupPage() {
     });
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+const handleSignUp = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  setSuccess("");
+  setLoading(true);
 
-    try {
-      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
-      
-      const user = await signup({
-        email: formData.email,
-        name: fullName,
-        password: formData.password,
-        barangay: formData.barangay,
-      });
+  try {
+    const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+    
+    const user = await signup({
+      email: formData.email,
+      name: fullName,
+      password: formData.password,
+      barangay: formData.barangay,
+    });
 
-      // Store user data
-      localStorage.setItem("user_data", JSON.stringify(user));
+    localStorage.setItem("user_data", JSON.stringify(user));
 
-      // Show success message or redirect to login
+    // ✅ Show success message
+    setSuccess("Successfully created user!");
+
+    // ✅ Optional: delay before redirect
+    setTimeout(() => {
       router.push("/login");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 1500);
+
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
@@ -86,6 +93,12 @@ export default function SignupPage() {
           <h1 className="text-2xl font-bold text-gray-900">Create an account</h1>
           <p className="text-sm text-gray-500 mt-1">Join Baha-Buster to get real-time flood alerts</p>
         </div>
+
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+            {success}
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
