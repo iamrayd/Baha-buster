@@ -1,9 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, MapPin, Search, SlidersHorizontal, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  AlertTriangle,
+  MapPin,
+  Search,
+  SlidersHorizontal,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+} from "lucide-react";
 import { BarangayFloodData, RiskLevel } from "@/src/types/global";
 import { fetchAllForecasts } from "@/src/services/api";
+import AddAlertModal from "@/src/features/alerts/AddAlertModal";
 
 const CACHE_KEY = "baha_buster_data_v1";
 
@@ -17,36 +27,36 @@ const LEVEL_STYLES: Record<RiskLevel, {
   dayBg: string;
 }> = {
   HIGH: {
-    border: "border-l-red-500",
-    iconBg: "bg-red-100",
+    border:    "border-l-red-500",
+    iconBg:    "bg-red-100",
     iconColor: "text-red-500",
-    badge: "bg-red-100 text-red-600",
-    dayBg: "bg-red-50",
+    badge:     "bg-red-100 text-red-600",
+    dayBg:     "bg-red-50",
   },
   MEDIUM: {
-    border: "border-l-orange-400",
-    iconBg: "bg-orange-100",
+    border:    "border-l-orange-400",
+    iconBg:    "bg-orange-100",
     iconColor: "text-orange-500",
-    badge: "bg-orange-100 text-orange-600",
-    dayBg: "bg-orange-50",
+    badge:     "bg-orange-100 text-orange-600",
+    dayBg:     "bg-orange-50",
   },
   LOW: {
-    border: "border-l-blue-400",
-    iconBg: "bg-blue-100",
+    border:    "border-l-blue-400",
+    iconBg:    "bg-blue-100",
     iconColor: "text-blue-500",
-    badge: "bg-blue-100 text-blue-600",
-    dayBg: "bg-blue-50",
+    badge:     "bg-blue-100 text-blue-600",
+    dayBg:     "bg-blue-50",
   },
 };
 
 const DAY_RISK_COLORS: Record<RiskLevel, string> = {
-  HIGH: "text-red-600 font-semibold",
+  HIGH:   "text-red-600 font-semibold",
   MEDIUM: "text-orange-500 font-semibold",
-  LOW: "text-blue-500",
+  LOW:    "text-blue-500",
 };
 
 function getAlertTitle(risk: RiskLevel): string {
-  if (risk === "HIGH") return "Critical Flood Warning";
+  if (risk === "HIGH")   return "Critical Flood Warning";
   if (risk === "MEDIUM") return "Rising Water Level Alert";
   return "Flood Advisory";
 }
@@ -54,20 +64,25 @@ function getAlertTitle(risk: RiskLevel): string {
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
-    day: "numeric",
+    day:   "numeric",
   });
 }
 
-// Helper function to safely extract the risk level for Day 1
-const getRisk = (b: BarangayFloodData): RiskLevel => b.predictions?.[0]?.risk_level || "LOW";
+const getRisk = (b: BarangayFloodData): RiskLevel =>
+  b.predictions?.[0]?.risk_level || "LOW";
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AlertsPage() {
-  const [data, setData] = useState<BarangayFloodData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [data, setData]           = useState<BarangayFloodData[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState("");
   const [filterLevel, setFilterLevel] = useState<FilterLevel>("ALL");
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded]   = useState<Record<string, boolean>>({});
+  const [showModal, setShowModal] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // ── Data fetch ─────────────────────────────────────────────────────────────
   useEffect(() => {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
@@ -77,13 +92,13 @@ export default function AlertsPage() {
           setData(parsed);
           setLoading(false);
         }
-      } catch (e) {
-        console.error("Cache parse error", e);
+      } catch {
+        // ignore bad cache
       }
     }
 
     fetchAllForecasts()
-      .then((json: BarangayFloodData[]) => {
+      .then((json) => {
         setData(json);
         setLoading(false);
         localStorage.setItem(CACHE_KEY, JSON.stringify(json));
@@ -94,10 +109,22 @@ export default function AlertsPage() {
       });
   }, []);
 
-  const toggleExpand = (barangay: string) => {
-    setExpanded((prev) => ({ ...prev, [barangay]: !prev[barangay] }));
-  };
+  // ── Success toast auto-dismiss ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!successMsg) return;
+    const timer = setTimeout(() => setSuccessMsg(null), 4000);
+    return () => clearTimeout(timer);
+  }, [successMsg]);
 
+  function toggleExpand(barangay: string) {
+    setExpanded((prev) => ({ ...prev, [barangay]: !prev[barangay] }));
+  }
+
+  function handleAlertSuccess() {
+    setSuccessMsg("Alert sent successfully!");
+  }
+
+  // ── Derived data ───────────────────────────────────────────────────────────
   const atRisk = data
     .filter((b) => {
       const risk = getRisk(b);
@@ -110,17 +137,27 @@ export default function AlertsPage() {
 
   const filtered = atRisk.filter((b) => {
     const matchesSearch = b.barangay.toLowerCase().includes(search.toLowerCase());
-    const matchesLevel = filterLevel === "ALL" || getRisk(b) === filterLevel;
+    const matchesLevel  = filterLevel === "ALL" || getRisk(b) === filterLevel;
     return matchesSearch && matchesLevel;
   });
 
-  const highCount = atRisk.filter((b) => getRisk(b) === "HIGH").length;
+  const highCount   = atRisk.filter((b) => getRisk(b) === "HIGH").length;
   const mediumCount = atRisk.filter((b) => getRisk(b) === "MEDIUM").length;
-  const lowCount = atRisk.filter((b) => getRisk(b) === "LOW").length;
+  const lowCount    = atRisk.filter((b) => getRisk(b) === "LOW").length;
 
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      {/* Header */}
+
+      {/* ── Success toast ───────────────────────────────────────────────── */}
+      {successMsg && (
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-green-600 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2">
+          <CheckCircle size={17} />
+          {successMsg}
+        </div>
+      )}
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Active Alerts</h1>
@@ -129,7 +166,9 @@ export default function AlertsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Controls row */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {/* Search */}
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -137,9 +176,11 @@ export default function AlertsPage() {
               placeholder="Search by barangay..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-52"
+              className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
             />
           </div>
+
+          {/* Level filter */}
           <div className="relative">
             <select
               value={filterLevel}
@@ -153,10 +194,19 @@ export default function AlertsPage() {
             </select>
             <SlidersHorizontal size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
+
+          {/* Add Alert button */}
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+          >
+            <Plus size={16} />
+            Add Alert
+          </button>
         </div>
       </div>
 
-      {/* Summary Badges */}
+      {/* ── Summary badges ──────────────────────────────────────────────── */}
       {!loading && atRisk.length > 0 && (
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm text-gray-500">
@@ -180,12 +230,15 @@ export default function AlertsPage() {
         </div>
       )}
 
-      {/* Alert Cards */}
+      {/* ── Alert cards ─────────────────────────────────────────────────── */}
       <div className="space-y-3">
         {loading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-100 px-5 py-4 h-20 animate-pulse" />
+              <div
+                key={i}
+                className="bg-white rounded-xl border border-gray-100 px-5 py-4 h-20 animate-pulse"
+              />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -202,10 +255,9 @@ export default function AlertsPage() {
           </div>
         ) : (
           filtered.map((barangay) => {
-            // FIXED: Use getRisk() helper
-            const risk = getRisk(barangay);
-            const styles = LEVEL_STYLES[risk];
-            const isExpanded = expanded[barangay.barangay] ?? false;
+            const risk         = getRisk(barangay);
+            const styles       = LEVEL_STYLES[risk];
+            const isExpanded   = expanded[barangay.barangay] ?? false;
             const currentDepth = barangay.predictions?.[0]?.predicted_depth_cm ?? 0;
 
             return (
@@ -213,14 +265,12 @@ export default function AlertsPage() {
                 key={barangay.barangay}
                 className={`bg-white rounded-xl border border-gray-100 border-l-4 ${styles.border} shadow-sm overflow-hidden`}
               >
-                {/* Main Row */}
+                {/* Main row */}
                 <div className="px-5 py-4 flex items-center gap-4">
-                  {/* Icon */}
                   <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${styles.iconBg}`}>
                     <AlertTriangle size={20} className={styles.iconColor} />
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900 text-sm">
@@ -234,12 +284,10 @@ export default function AlertsPage() {
                       <MapPin size={12} />
                       <span>{barangay.barangay}</span>
                       <span className="mx-1">·</span>
-                      {/* FIXED: Replaced non-existent rainfall with current depth */}
                       <span>Predicted Depth: {currentDepth.toFixed(2)} cm</span>
                     </div>
                   </div>
 
-                  {/* Expand toggle */}
                   <button
                     onClick={() => toggleExpand(barangay.barangay)}
                     className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
@@ -252,16 +300,14 @@ export default function AlertsPage() {
                   </button>
                 </div>
 
-                {/* 3-Day Forecast Breakdown */}
+                {/* 3-day forecast breakdown */}
                 {isExpanded && (
                   <div className={`px-5 pb-4 ${styles.dayBg} border-t border-gray-100`}>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-3 mb-3">
                       3-Day Forecast
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {/* FIXED: Loop over predictions instead of forecasts */}
                       {barangay.predictions?.slice(0, 3).map((prediction, index) => {
-                        // Create a date based on the prediction day (Day 1 = Today)
                         const forecastDate = new Date();
                         forecastDate.setDate(forecastDate.getDate() + (prediction.day - 1));
 
@@ -288,7 +334,6 @@ export default function AlertsPage() {
                               <div className="flex justify-between text-xs">
                                 <span className="text-gray-500">Probability</span>
                                 <span className="font-semibold text-gray-800">
-                                  {/* FIXED: Converted decimal to percent */}
                                   {(prediction.flood_probability * 100).toFixed(1)}%
                                 </span>
                               </div>
@@ -310,6 +355,14 @@ export default function AlertsPage() {
           })
         )}
       </div>
+
+      {/* ── Add Alert Modal ──────────────────────────────────────────────── */}
+      {showModal && (
+        <AddAlertModal
+          onClose={() => setShowModal(false)}
+          onSuccess={handleAlertSuccess}
+        />
+      )}
     </div>
   );
 }

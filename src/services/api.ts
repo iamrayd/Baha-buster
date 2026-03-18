@@ -72,7 +72,6 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
   }
 
   const data = await res.json();
-
   if (!data) throw new Error("No data received from login API");
 
   let normalizedResponse: AuthResponse = {};
@@ -82,13 +81,16 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
   } else if (data.user_id && data.email && data.name) {
     normalizedResponse = { user: data as User, token: data.token, message: "Login successful" };
   } else if (data.data?.user) {
-    normalizedResponse = { message: data.message, user: data.data.user, token: data.data.token ?? data.token };
+    normalizedResponse = {
+      message: data.message,
+      user: data.data.user,
+      token: data.data.token ?? data.token,
+    };
   } else {
     throw new Error(`Unexpected API response format. Keys: ${Object.keys(data).join(", ")}`);
   }
 
   if (!normalizedResponse.user) throw new Error("Could not extract user data from API response");
-
   return normalizedResponse;
 }
 
@@ -119,6 +121,46 @@ export async function getAllUsers(): Promise<User[]> {
   return res.json();
 }
 
+// ─── Alerts ───────────────────────────────────────────────────────────────────
+
+export type AlertSeverity = "low" | "moderate" | "high" | "critical";
+export type AlertStatus   = "active" | "resolved" | "inactive";
+
+export interface CreateAlertPayload {
+  title: string;
+  location: string;
+  description: string;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  acknowledged: boolean;
+}
+
+export interface AlertRecord extends CreateAlertPayload {
+  alert_id: number;
+  created_at: string;
+}
+
+export async function createAlert(payload: CreateAlertPayload): Promise<AlertRecord> {
+  const res = await fetch(`${API_BASE_URL}/alerts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let errorMessage = `Server returned ${res.status}`;
+    try {
+      const error = await res.json();
+      errorMessage = error.message || error.detail || errorMessage;
+    } catch {
+      // response body was not JSON
+    }
+    throw new Error(errorMessage);
+  }
+
+  return res.json();
+}
+
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
 export interface Report {
@@ -133,7 +175,6 @@ export interface Report {
 }
 
 // Every barangay available in the system.
-// Kept in sync with the BARANGAYS list in the signup page.
 const ALL_BARANGAYS = [
   "ADLAON", "AGSUNGOT", "APAS", "BABAG", "BACAYAN", "BANILAD", "BARRIO LUZ",
   "BASAK PARDO", "BASAK SAN NICOLAS", "BINALIW", "BONBON", "BUDLAAN",
@@ -152,26 +193,15 @@ const ALL_BARANGAYS = [
   "ZAPATERA",
 ];
 
-/**
- * Fetch reports for a specific barangay.
- * Used when a user is logged in.
- */
 export async function getReportsByBarangay(barangay: string): Promise<Report[]> {
   const res = await fetch(
     `${REPORTS_API_BASE_URL}/reports?barangay=${encodeURIComponent(barangay)}`
   );
-
   if (!res.ok) throw new Error(`Failed to fetch reports: ${res.status}`);
-
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
-/**
- * Fetch reports for every barangay in parallel and merge the results.
- * Used for guests since there is no bare /reports endpoint.
- * Barangays that return no results or errors are silently skipped.
- */
 export async function getAllReports(): Promise<Report[]> {
   const results = await Promise.allSettled(
     ALL_BARANGAYS.map((barangay) =>

@@ -74,7 +74,7 @@ export default function ReportsPage() {
     setAuthResolved(true);
   }, []);
 
-  // ── Fetch reports once auth state is known ────────────────────────────────
+  // Fetch reports if not logged in
   useEffect(() => {
     if (!authResolved) return;
 
