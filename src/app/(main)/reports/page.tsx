@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   FileText,
   AlertCircle,
-  Clock,
   MapPin,
   Calendar,
   Filter,
@@ -19,19 +18,17 @@ import {
   User,
 } from "@/src/services/api";
 
-// ─── Severity config ──────────────────────────────────────────────────────────
-
 const SEVERITY_CONFIG: Record<
   string,
-  { label: string; color: string; bgColor: string }
+  { label: string; bg: string; color: string }
 > = {
-  low:      { label: "Low",        color: "text-blue-600",   bgColor: "bg-blue-100"   },
-  ankle:    { label: "Ankle Deep", color: "text-blue-600",   bgColor: "bg-blue-100"   },
-  knee:     { label: "Knee Deep",  color: "text-orange-600", bgColor: "bg-orange-100" },
-  waist:    { label: "Waist Deep", color: "text-red-600",    bgColor: "bg-red-100"    },
-  moderate: { label: "Moderate",   color: "text-orange-600", bgColor: "bg-orange-100" },
-  high:     { label: "High",       color: "text-red-600",    bgColor: "bg-red-100"    },
-  critical: { label: "Critical",   color: "text-purple-600", bgColor: "bg-purple-100" },
+  low:      { label: "Low",        bg: "var(--color-risk-low-bg)",    color: "var(--color-risk-low)"    },
+  ankle:    { label: "Ankle Deep", bg: "var(--color-risk-low-bg)",    color: "var(--color-risk-low)"    },
+  knee:     { label: "Knee Deep",  bg: "var(--color-risk-medium-bg)", color: "var(--color-risk-medium)" },
+  waist:    { label: "Waist Deep", bg: "var(--color-risk-high-bg)",   color: "var(--color-risk-high)"   },
+  moderate: { label: "Moderate",   bg: "var(--color-risk-medium-bg)", color: "var(--color-risk-medium)" },
+  high:     { label: "High",       bg: "var(--color-risk-high-bg)",   color: "var(--color-risk-high)"   },
+  critical: { label: "Critical",   bg: "#faf5ff",                     color: "#6b46c1"                  },
 };
 
 function getSeverityConfig(severity?: string) {
@@ -49,8 +46,6 @@ function formatDate(dateString: string) {
   });
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export default function ReportsPage() {
   const [reports, setReports]               = useState<Report[]>([]);
   const [loading, setLoading]               = useState(true);
@@ -61,20 +56,14 @@ export default function ReportsPage() {
   const [severityFilter, setSeverityFilter] = useState<string>("ALL");
   const [barangayFilter, setBarangayFilter] = useState<string>("ALL");
 
-  // ── Resolve user from localStorage (no redirect) ──────────────────────────
   useEffect(() => {
     const raw = localStorage.getItem("user_data");
     if (raw) {
-      try {
-        setUser(JSON.parse(raw) as User);
-      } catch {
-        // malformed data — treat as guest
-      }
+      try { setUser(JSON.parse(raw) as User); } catch { /* guest */ }
     }
     setAuthResolved(true);
   }, []);
 
-  // Fetch reports if not logged in
   useEffect(() => {
     if (!authResolved) return;
 
@@ -82,13 +71,10 @@ export default function ReportsPage() {
       try {
         setLoading(true);
         setError(null);
-
         if (user) {
-          // Logged-in: fetch only their barangay
           const data = await getReportsByBarangay(user.barangay);
           setReports(data);
         } else {
-          // Guest: fetch all barangays in parallel — may take a moment
           setIsFetchingAll(true);
           const data = await getAllReports();
           setReports(data);
@@ -105,38 +91,23 @@ export default function ReportsPage() {
     fetchReports();
   }, [authResolved, user]);
 
-  // ── Derived values ────────────────────────────────────────────────────────
-  const uniqueSeverities = Array.from(
-    new Set(reports.map((r) => r.severity.toLowerCase()))
-  );
-
-  const uniqueBarangays = Array.from(
-    new Set(reports.map((r) => r.user_barangay))
-  ).sort();
+  const uniqueSeverities = Array.from(new Set(reports.map((r) => r.severity.toLowerCase())));
+  const uniqueBarangays = Array.from(new Set(reports.map((r) => r.user_barangay))).sort();
 
   const filteredReports = reports.filter((report) => {
-    const matchesSeverity =
-      severityFilter === "ALL" ||
-      report.severity.toLowerCase() === severityFilter.toLowerCase();
-
-    const matchesBarangay =
-      barangayFilter === "ALL" || report.user_barangay === barangayFilter;
-
+    const matchesSeverity = severityFilter === "ALL" || report.severity.toLowerCase() === severityFilter.toLowerCase();
+    const matchesBarangay = barangayFilter === "ALL" || report.user_barangay === barangayFilter;
     return matchesSeverity && matchesBarangay;
   });
 
-  // ─── Loading state ────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-3">
-          <Loader2
-            size={40}
-            className="animate-spin text-blue-600 mx-auto"
-          />
-          <p className="text-gray-700 font-medium">Loading reports...</p>
+          <Loader2 size={40} className="animate-spin mx-auto" style={{ color: "var(--color-primary)" }} />
+          <p className="font-semibold" style={{ color: "var(--color-gray-700)" }}>Loading reports...</p>
           {isFetchingAll && (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm" style={{ color: "var(--color-gray-400)" }}>
               Fetching reports across all barangays — this may take a moment.
             </p>
           )}
@@ -145,32 +116,26 @@ export default function ReportsPage() {
     );
   }
 
-  // ─── Main render ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-        <p className="text-gray-500 mt-1 text-sm">
-          {user
-            ? `Showing flood reports for ${user.barangay}`
-            : "Showing all flood reports across Cebu City"}
+        <h1 className="text-2xl font-bold" style={{ color: "var(--color-gray-700)" }}>Reports</h1>
+        <p className="text-sm mt-1" style={{ color: "var(--color-gray-400)" }}>
+          {user ? `Showing flood reports for ${user.barangay}` : "Showing all flood reports across Cebu City"}
         </p>
       </div>
 
       {/* Guest notice */}
       {!user && (
-        <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-          <AlertCircle size={18} className="shrink-0 mt-0.5 text-blue-500" />
+        <div
+          className="flex items-start gap-3 p-4 text-sm"
+          style={{ background: "rgba(44, 82, 130, 0.06)", color: "var(--color-primary)", borderRadius: "var(--radius-card)" }}
+        >
+          <AlertCircle size={18} className="shrink-0 mt-0.5 opacity-70" />
           <p>
             You are viewing all barangay reports.{" "}
-            <a
-              href="/login"
-              className="font-semibold underline hover:text-blue-900"
-            >
-              Sign in
-            </a>{" "}
+            <a href="/login" className="font-semibold underline">Sign in</a>{" "}
             to see reports specific to your barangay.
           </p>
         </div>
@@ -178,26 +143,30 @@ export default function ReportsPage() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg p-4">
-          <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={20} />
+        <div
+          className="flex items-start gap-3 p-4"
+          style={{ background: "var(--color-risk-high-bg)", borderRadius: "var(--radius-card)" }}
+        >
+          <AlertTriangle size={20} className="shrink-0 mt-0.5" style={{ color: "var(--color-risk-high)" }} />
           <div>
-            <p className="font-semibold text-red-900">Error loading reports</p>
-            <p className="text-sm text-red-700 mt-1">{error}</p>
+            <p className="font-semibold" style={{ color: "var(--color-risk-high)" }}>Error loading reports</p>
+            <p className="text-sm mt-1 opacity-80" style={{ color: "var(--color-risk-high)" }}>{error}</p>
           </div>
         </div>
       )}
 
       {/* Stats */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
+      <div className="bg-white p-6" style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500 font-medium">Total Reports</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">
-              {reports.length}
-            </p>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-gray-500)" }}>Total Reports</p>
+            <p className="text-3xl font-bold mt-1" style={{ color: "var(--color-gray-700)" }}>{reports.length}</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-            <FileText size={24} className="text-blue-600" />
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center"
+            style={{ background: "rgba(44, 82, 130, 0.1)" }}
+          >
+            <FileText size={24} style={{ color: "var(--color-primary)" }} />
           </div>
         </div>
       </div>
@@ -205,54 +174,45 @@ export default function ReportsPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <Filter size={16} className="text-gray-400" />
-          <span className="text-sm text-gray-600 font-medium">Filters:</span>
+          <Filter size={16} style={{ color: "var(--color-gray-400)" }} />
+          <span className="text-sm font-semibold" style={{ color: "var(--color-gray-600)" }}>Filters:</span>
         </div>
 
-        {/* Severity */}
         <select
-          value={severityFilter}
-          onChange={(e) => setSeverityFilter(e.target.value)}
-          className="px-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}
+          className="px-4 py-2.5 text-sm border focus:outline-none focus:ring-2"
+          style={{ borderRadius: "var(--radius-input)", borderColor: "var(--color-gray-200)", background: "var(--color-card)" }}
         >
           <option value="ALL">All Severities</option>
           {uniqueSeverities.map((s) => (
-            <option key={s} value={s}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </option>
+            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
         </select>
 
-        {/* Barangay — only for guests since logged-in users see their own */}
         {!user && (
           <select
-            value={barangayFilter}
-            onChange={(e) => setBarangayFilter(e.target.value)}
-            className="px-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={barangayFilter} onChange={(e) => setBarangayFilter(e.target.value)}
+            className="px-4 py-2.5 text-sm border focus:outline-none focus:ring-2"
+            style={{ borderRadius: "var(--radius-input)", borderColor: "var(--color-gray-200)", background: "var(--color-card)" }}
           >
             <option value="ALL">All Barangays</option>
             {uniqueBarangays.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
+              <option key={b} value={b}>{b}</option>
             ))}
           </select>
         )}
 
-        {/* Clear */}
         {(severityFilter !== "ALL" || barangayFilter !== "ALL") && (
           <button
-            onClick={() => {
-              setSeverityFilter("ALL");
-              setBarangayFilter("ALL");
-            }}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            onClick={() => { setSeverityFilter("ALL"); setBarangayFilter("ALL"); }}
+            className="text-sm font-semibold transition-colors"
+            style={{ color: "var(--color-primary)" }}
           >
             Clear filters
           </button>
         )}
 
-        <div className="ml-auto text-sm text-gray-500">
+        <div className="ml-auto text-sm" style={{ color: "var(--color-gray-500)" }}>
           Showing {filteredReports.length} of {reports.length} reports
         </div>
       </div>
@@ -260,15 +220,11 @@ export default function ReportsPage() {
       {/* Report cards */}
       <div className="space-y-3">
         {filteredReports.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-            <FileText size={48} className="text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No reports found
-            </h3>
-            <p className="text-gray-500 text-sm">
-              {reports.length === 0
-                ? "No reports have been filed yet."
-                : "Try adjusting your filters to see more results."}
+          <div className="bg-white p-12 text-center" style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}>
+            <FileText size={48} className="mx-auto mb-4" style={{ color: "var(--color-gray-300)" }} />
+            <h3 className="text-lg font-bold mb-2" style={{ color: "var(--color-gray-700)" }}>No reports found</h3>
+            <p className="text-sm" style={{ color: "var(--color-gray-400)" }}>
+              {reports.length === 0 ? "No reports have been filed yet." : "Try adjusting your filters to see more results."}
             </p>
           </div>
         ) : (
@@ -278,35 +234,32 @@ export default function ReportsPage() {
             return (
               <div
                 key={report.report_id}
-                className="bg-white rounded-xl border border-gray-100 hover:shadow-md transition-shadow"
+                className="bg-white hover:shadow-md transition-shadow duration-200"
+                style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}
               >
                 <div className="p-5">
-
-                  {/* Card header */}
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-start gap-3 flex-1">
                       <div
-                        className={`w-10 h-10 rounded-full ${severityConfig.bgColor} flex items-center justify-center shrink-0`}
+                        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: severityConfig.bg }}
                       >
-                        <AlertCircle size={20} className={severityConfig.color} />
+                        <AlertCircle size={20} style={{ color: severityConfig.color }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="font-semibold text-gray-900">
-                            Flood Report
-                          </h3>
+                          <h3 className="font-bold" style={{ color: "var(--color-gray-700)" }}>Flood Report</h3>
                           <span
-                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${severityConfig.color} ${severityConfig.bgColor}`}
+                            className="text-[10px] font-bold uppercase px-2.5 py-0.5"
+                            style={{ background: severityConfig.bg, color: severityConfig.color, borderRadius: "var(--radius-badge)" }}
                           >
                             {severityConfig.label}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {report.description}
-                        </p>
+                        <p className="text-sm mt-1" style={{ color: "var(--color-gray-500)" }}>{report.description}</p>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-400 font-mono shrink-0">
+                    <span className="text-xs font-mono shrink-0" style={{ color: "var(--color-gray-400)" }}>
                       #{report.report_id}
                     </span>
                   </div>
@@ -315,22 +268,22 @@ export default function ReportsPage() {
                   {report.photos && report.photos.length > 0 && (
                     <div className="mb-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <ImageIcon size={14} className="text-gray-400" />
-                        <span className="text-xs text-gray-500 font-medium">
-                          {report.photos.length} Photo
-                          {report.photos.length > 1 ? "s" : ""}
+                        <ImageIcon size={14} style={{ color: "var(--color-gray-400)" }} />
+                        <span className="text-xs font-semibold" style={{ color: "var(--color-gray-500)" }}>
+                          {report.photos.length} Photo{report.photos.length > 1 ? "s" : ""}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {report.photos.slice(0, 3).map((photo, index) => (
                           <div
                             key={index}
-                            className="relative aspect-video rounded-lg overflow-hidden bg-gray-100"
+                            className="relative aspect-video overflow-hidden"
+                            style={{ borderRadius: "var(--radius-input)", background: "var(--color-gray-100)" }}
                           >
                             <img
                               src={photo}
                               alt={`Report photo ${index + 1}`}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
                                   "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub3QgYXZhaWxhYmxlPC90ZXh0Pjwvc3ZnPg==";
@@ -340,16 +293,15 @@ export default function ReportsPage() {
                         ))}
                       </div>
                       {report.photos.length > 3 && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          +{report.photos.length - 3} more photo
-                          {report.photos.length - 3 > 1 ? "s" : ""}
+                        <p className="text-xs mt-2" style={{ color: "var(--color-gray-500)" }}>
+                          +{report.photos.length - 3} more photo{report.photos.length - 3 > 1 ? "s" : ""}
                         </p>
                       )}
                     </div>
                   )}
 
                   {/* Footer meta */}
-                  <div className="flex items-center gap-4 text-xs text-gray-500 pt-3 border-t border-gray-100 flex-wrap">
+                  <div className="flex items-center gap-4 text-xs pt-3 flex-wrap" style={{ color: "var(--color-gray-500)", borderTop: "1px solid var(--color-gray-100)" }}>
                     <div className="flex items-center gap-1">
                       <MapPin size={14} />
                       <span>{report.user_barangay}</span>
@@ -358,18 +310,13 @@ export default function ReportsPage() {
                       <Calendar size={14} />
                       <span>Reported {formatDate(report.created_at)}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Clock size={14} />
-                      <span>Incident: {formatDate(report.timestamp)}</span>
-                    </div>
                     <div className="flex items-center gap-1 ml-auto">
-                      <span className="text-gray-400">By:</span>
-                      <span className="font-medium text-gray-600">
+                      <span style={{ color: "var(--color-gray-400)" }}>By:</span>
+                      <span className="font-semibold" style={{ color: "var(--color-gray-600)" }}>
                         {report.user_email}
                       </span>
                     </div>
                   </div>
-
                 </div>
               </div>
             );

@@ -3,21 +3,37 @@ import { cn } from "@/src/lib/utils";
 interface BadgeProps {
   variant: "high" | "medium" | "low";
   children: React.ReactNode;
+  className?: string;
 }
 
 const badgeColors = {
-  high: "bg-red-100 text-red-700 border-red-200",
-  medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  low: "bg-blue-100 text-blue-700 border-blue-200",
+  high: {
+    background: "var(--color-risk-high-bg)",
+    color: "var(--color-risk-high)",
+  },
+  medium: {
+    background: "var(--color-risk-medium-bg)",
+    color: "var(--color-risk-medium)",
+  },
+  low: {
+    background: "var(--color-risk-low-bg)",
+    color: "var(--color-risk-low)",
+  },
 };
 
-export function Badge({ variant, children }: BadgeProps) {
+export function Badge({ variant, children, className }: BadgeProps) {
+  const colors = badgeColors[variant];
   return (
     <span
       className={cn(
-        "px-3 py-1 rounded-full text-xs font-semibold border",
-        badgeColors[variant]
+        "inline-flex items-center px-3 py-1 text-xs font-bold uppercase tracking-wide",
+        className
       )}
+      style={{
+        background: colors.background,
+        color: colors.color,
+        borderRadius: "var(--radius-badge)",
+      }}
     >
       {children}
     </span>

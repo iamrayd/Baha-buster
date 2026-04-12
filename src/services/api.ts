@@ -42,13 +42,6 @@ async function fetchWithOfflineGuard(
   try {
     return await fetch(input, init);
   } catch (err) {
-    // TypeError means no response was received — server is down / unreachable.
-    if (err instanceof TypeError) {
-      clearSession();
-      if (typeof window !== "undefined") {
-        window.location.href = "/login?reason=offline";
-      }
-    }
     throw err;
   }
 }
