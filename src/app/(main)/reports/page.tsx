@@ -10,25 +10,33 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   Loader2,
+  X,
+  User as UserIcon,
 } from "lucide-react";
 import {
   getAllReports,
   getReportsByBarangay,
   Report,
-  User,
 } from "@/src/services/api";
+
+interface UserData {
+  user_id: number;
+  email: string;
+  name: string;
+  barangay: string;
+}
 
 const SEVERITY_CONFIG: Record<
   string,
   { label: string; bg: string; color: string }
 > = {
-  low:      { label: "Low",        bg: "var(--color-risk-low-bg)",    color: "var(--color-risk-low)"    },
-  ankle:    { label: "Ankle Deep", bg: "var(--color-risk-low-bg)",    color: "var(--color-risk-low)"    },
-  knee:     { label: "Knee Deep",  bg: "var(--color-risk-medium-bg)", color: "var(--color-risk-medium)" },
-  waist:    { label: "Waist Deep", bg: "var(--color-risk-high-bg)",   color: "var(--color-risk-high)"   },
-  moderate: { label: "Moderate",   bg: "var(--color-risk-medium-bg)", color: "var(--color-risk-medium)" },
-  high:     { label: "High",       bg: "var(--color-risk-high-bg)",   color: "var(--color-risk-high)"   },
-  critical: { label: "Critical",   bg: "#faf5ff",                     color: "#6b46c1"                  },
+  low: { label: "Low", bg: "var(--color-risk-low-bg)", color: "var(--color-risk-low)" },
+  ankle: { label: "Ankle Deep", bg: "var(--color-risk-low-bg)", color: "var(--color-risk-low)" },
+  knee: { label: "Knee Deep", bg: "var(--color-risk-medium-bg)", color: "var(--color-risk-medium)" },
+  waist: { label: "Waist Deep", bg: "var(--color-risk-high-bg)", color: "var(--color-risk-high)" },
+  moderate: { label: "Moderate", bg: "var(--color-risk-medium-bg)", color: "var(--color-risk-medium)" },
+  high: { label: "High", bg: "var(--color-risk-high-bg)", color: "var(--color-risk-high)" },
+  critical: { label: "Critical", bg: "#faf5ff", color: "#6b46c1" },
 };
 
 function getSeverityConfig(severity?: string) {
@@ -47,19 +55,19 @@ function formatDate(dateString: string) {
 }
 
 export default function ReportsPage() {
-  const [reports, setReports]               = useState<Report[]>([]);
-  const [loading, setLoading]               = useState(true);
-  const [isFetchingAll, setIsFetchingAll]   = useState(false);
-  const [error, setError]                   = useState<string | null>(null);
-  const [user, setUser]                     = useState<User | null>(null);
-  const [authResolved, setAuthResolved]     = useState(false);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isFetchingAll, setIsFetchingAll] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [authResolved, setAuthResolved] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<string>("ALL");
   const [barangayFilter, setBarangayFilter] = useState<string>("ALL");
 
   useEffect(() => {
     const raw = localStorage.getItem("user_data");
     if (raw) {
-      try { setUser(JSON.parse(raw) as User); } catch { /* guest */ }
+      try { setUser(JSON.parse(raw) as UserData); } catch { /* guest */ }
     }
     setAuthResolved(true);
   }, []);
@@ -171,150 +179,192 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Filter size={16} style={{ color: "var(--color-gray-400)" }} />
-          <span className="text-sm font-semibold" style={{ color: "var(--color-gray-600)" }}>Filters:</span>
+      {/* Filters (Pills) */}
+      <div className="space-y-4">
+        {/* Severity Filter */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <Filter size={16} style={{ color: "var(--color-gray-400)" }} />
+            <span className="text-sm font-semibold" style={{ color: "var(--color-gray-600)" }}>Severity:</span>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none snap-x">
+            <button
+              onClick={() => setSeverityFilter("ALL")}
+              className={`snap-start px-4 py-1.5 rounded-full text-[13px] tracking-wide font-bold uppercase transition-all ${severityFilter === "ALL" ? "shadow-md" : "hover:bg-gray-50 border border-gray-200"
+                }`}
+              style={severityFilter === "ALL" ? { background: "var(--color-primary)", color: "white" } : { background: "white", color: "var(--color-gray-500)" }}
+            >
+              All Severities
+            </button>
+            {uniqueSeverities.map((s) => {
+              const isActive = severityFilter === s;
+              const config = getSeverityConfig(s);
+              return (
+                <button
+                  key={s}
+                  onClick={() => setSeverityFilter(s)}
+                  className={`snap-start px-4 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide whitespace-nowrap transition-all ${isActive ? "shadow-md ring-2 ring-offset-1" : "border"
+                    }`}
+                  style={{
+                    backgroundColor: isActive ? config.color : "white",
+                    color: isActive ? "white" : config.color,
+                    borderColor: isActive ? "transparent" : config.color,
+                  }}
+                >
+                  {config.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <select
-          value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}
-          className="px-4 py-2.5 text-sm border focus:outline-none focus:ring-2"
-          style={{ borderRadius: "var(--radius-input)", borderColor: "var(--color-gray-200)", background: "var(--color-card)" }}
-        >
-          <option value="ALL">All Severities</option>
-          {uniqueSeverities.map((s) => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-          ))}
-        </select>
-
+        {/* Barangay Filter (Guests) */}
         {!user && (
-          <select
-            value={barangayFilter} onChange={(e) => setBarangayFilter(e.target.value)}
-            className="px-4 py-2.5 text-sm border focus:outline-none focus:ring-2"
-            style={{ borderRadius: "var(--radius-input)", borderColor: "var(--color-gray-200)", background: "var(--color-card)" }}
-          >
-            <option value="ALL">All Barangays</option>
-            {uniqueBarangays.map((b) => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <MapPin size={16} style={{ color: "var(--color-gray-400)" }} />
+              <span className="text-sm font-semibold" style={{ color: "var(--color-gray-600)" }}>Barangay:</span>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none snap-x">
+              <button
+                onClick={() => setBarangayFilter("ALL")}
+                className={`snap-start px-4 py-1.5 rounded-full text-[13px] font-bold tracking-wide transition-all ${barangayFilter === "ALL" ? "shadow-md" : "hover:bg-gray-50 border border-gray-200"
+                  }`}
+                style={barangayFilter === "ALL" ? { background: "var(--color-primary)", color: "white" } : { background: "white", color: "var(--color-gray-500)" }}
+              >
+                All Barangays
+              </button>
+              {uniqueBarangays.map((b) => {
+                const isActive = barangayFilter === b;
+                return (
+                  <button
+                    key={b}
+                    onClick={() => setBarangayFilter(b)}
+                    className={`snap-start px-4 py-1.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all ${isActive ? "shadow-md" : "border hover:bg-gray-50"
+                      }`}
+                    style={isActive ? { background: "var(--color-primary)", color: "white", borderColor: "transparent" } : { background: "white", color: "var(--color-gray-500)", borderColor: "var(--color-gray-200)" }}
+                  >
+                    {b}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
 
-        {(severityFilter !== "ALL" || barangayFilter !== "ALL") && (
-          <button
-            onClick={() => { setSeverityFilter("ALL"); setBarangayFilter("ALL"); }}
-            className="text-sm font-semibold transition-colors"
-            style={{ color: "var(--color-primary)" }}
-          >
-            Clear filters
-          </button>
-        )}
-
-        <div className="ml-auto text-sm" style={{ color: "var(--color-gray-500)" }}>
-          Showing {filteredReports.length} of {reports.length} reports
+        {/* Clear Filters */}
+        <div className="flex items-center justify-between pt-2">
+          {(severityFilter !== "ALL" || barangayFilter !== "ALL") && (
+            <button
+              onClick={() => { setSeverityFilter("ALL"); setBarangayFilter("ALL"); }}
+              className="flex items-center gap-1.5 text-xs font-semibold transition-colors hover:opacity-80 uppercase tracking-widest px-3 py-1.5 rounded-lg"
+              style={{ color: "var(--color-risk-high)", background: "var(--color-risk-high-bg)" }}
+            >
+              <X size={14} /> Clear Active Filters
+            </button>
+          )}
+          <div className="ml-auto text-sm font-medium" style={{ color: "var(--color-gray-400)" }}>
+            Showing {filteredReports.length} of {reports.length} reports
+          </div>
         </div>
       </div>
 
       {/* Report cards */}
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredReports.length === 0 ? (
-          <div className="bg-white p-12 text-center" style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}>
-            <FileText size={48} className="mx-auto mb-4" style={{ color: "var(--color-gray-300)" }} />
-            <h3 className="text-lg font-bold mb-2" style={{ color: "var(--color-gray-700)" }}>No reports found</h3>
-            <p className="text-sm" style={{ color: "var(--color-gray-400)" }}>
-              {reports.length === 0 ? "No reports have been filed yet." : "Try adjusting your filters to see more results."}
+          <div className="col-span-full bg-white p-16 text-center border border-dashed" style={{ borderRadius: "var(--radius-card)", borderColor: "var(--color-gray-200)" }}>
+            <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4" style={{ background: "rgba(44, 82, 130, 0.05)" }}>
+              <FileText size={40} style={{ color: "var(--color-gray-300)" }} />
+            </div>
+            <h3 className="text-xl font-bold mb-2" style={{ color: "var(--color-gray-700)" }}>No reports found</h3>
+            <p className="text-sm max-w-sm mx-auto" style={{ color: "var(--color-gray-400)" }}>
+              {reports.length === 0 ? "It's all clear! No flood reports have been filed from this area yet." : "Try adjusting your filters to see more results."}
             </p>
           </div>
         ) : (
           filteredReports.map((report) => {
             const severityConfig = getSeverityConfig(report.severity);
+            const hasPhotos = report.photos && report.photos.length > 0;
 
             return (
               <div
                 key={report.report_id}
-                className="bg-white hover:shadow-md transition-shadow duration-200"
-                style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}
+                className="bg-white flex flex-col group overflow-hidden border border-transparent hover:border-gray-200 transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1"
+                style={{ borderRadius: "var(--radius-card)" }}
               >
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                        style={{ background: severityConfig.bg }}
-                      >
-                        <AlertCircle size={20} style={{ color: severityConfig.color }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="font-bold" style={{ color: "var(--color-gray-700)" }}>Flood Report</h3>
-                          <span
-                            className="text-[10px] font-bold uppercase px-2.5 py-0.5"
-                            style={{ background: severityConfig.bg, color: severityConfig.color, borderRadius: "var(--radius-badge)" }}
-                          >
-                            {severityConfig.label}
-                          </span>
-                        </div>
-                        <p className="text-sm mt-1" style={{ color: "var(--color-gray-500)" }}>{report.description}</p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-mono shrink-0" style={{ color: "var(--color-gray-400)" }}>
-                      #{report.report_id}
-                    </span>
-                  </div>
+                {/* Full Bleed Image Header */}
+                {hasPhotos && (
+                  <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+                    <img
+                      src={report.photos[0]}
+                      alt={`Report photo in ${report.user_barangay}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub3QgYXZhaWxhYmxlPC90ZXh0Pjwvc3ZnPg==";
+                      }}
+                    />
+                    {/* Shadow gradient for text readability */}
+                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
 
-                  {/* Photos */}
-                  {report.photos && report.photos.length > 0 && (
-                    <div className="mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <ImageIcon size={14} style={{ color: "var(--color-gray-400)" }} />
-                        <span className="text-xs font-semibold" style={{ color: "var(--color-gray-500)" }}>
-                          {report.photos.length} Photo{report.photos.length > 1 ? "s" : ""}
-                        </span>
+                    {report.photos.length > 1 && (
+                      <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded-md text-[10px] font-bold text-white flex items-center gap-1.5 shadow-sm">
+                        <ImageIcon size={12} />
+                        +{report.photos.length - 1}
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {report.photos.slice(0, 3).map((photo, index) => (
-                          <div
-                            key={index}
-                            className="relative aspect-video overflow-hidden"
-                            style={{ borderRadius: "var(--radius-input)", background: "var(--color-gray-100)" }}
-                          >
-                            <img
-                              src={photo}
-                              alt={`Report photo ${index + 1}`}
-                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src =
-                                  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub3QgYXZhaWxhYmxlPC90ZXh0Pjwvc3ZnPg==";
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      {report.photos.length > 3 && (
-                        <p className="text-xs mt-2" style={{ color: "var(--color-gray-500)" }}>
-                          +{report.photos.length - 3} more photo{report.photos.length - 3 > 1 ? "s" : ""}
-                        </p>
-                      )}
+                    )}
+                    {/* Severity Badge overlayed on image */}
+                    <div className="absolute bottom-4 left-4 shadow-lg">
+                      <span
+                        className="text-[11px] font-bold uppercase tracking-wide px-3 py-1.5"
+                        style={{ background: severityConfig.bg, color: severityConfig.color, borderRadius: "var(--radius-badge)" }}
+                      >
+                        {severityConfig.label} Risk
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-5 flex flex-col flex-1">
+                  {!hasPhotos && (
+                    <div className="flex items-center justify-between mb-4">
+                      <span
+                        className="text-[11px] font-bold uppercase tracking-wide px-3 py-1.5"
+                        style={{ background: severityConfig.bg, color: severityConfig.color, borderRadius: "var(--radius-badge)" }}
+                      >
+                        {severityConfig.label} Risk
+                      </span>
+                      <span className="text-xs font-mono" style={{ color: "var(--color-gray-400)" }}>
+                        #{report.report_id}
+                      </span>
                     </div>
                   )}
 
-                  {/* Footer meta */}
-                  <div className="flex items-center gap-4 text-xs pt-3 flex-wrap" style={{ color: "var(--color-gray-500)", borderTop: "1px solid var(--color-gray-100)" }}>
-                    <div className="flex items-center gap-1">
-                      <MapPin size={14} />
-                      <span>{report.user_barangay}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar size={14} />
-                      <span>Reported {formatDate(report.created_at)}</span>
-                    </div>
-                    <div className="flex items-center gap-1 ml-auto">
-                      <span style={{ color: "var(--color-gray-400)" }}>By:</span>
-                      <span className="font-semibold" style={{ color: "var(--color-gray-600)" }}>
-                        {report.user_email}
+                  {hasPhotos && (
+                    <div className="flex justify-end mb-3">
+                      <span className="text-xs font-mono" style={{ color: "var(--color-gray-300)" }}>
+                        #{report.report_id}
                       </span>
+                    </div>
+                  )}
+
+                  <p className="text-sm leading-relaxed flex-1 mb-6" style={{ color: "var(--color-gray-700)" }}>
+                    "{report.description}"
+                  </p>
+
+                  <div className="flex flex-col gap-2.5 pt-4 mt-auto border-t" style={{ borderColor: "var(--color-gray-100)" }}>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 font-bold" style={{ color: "var(--color-primary)" }}>
+                        <MapPin size={14} />
+                        {report.user_barangay}
+                      </div>
+                      <span className="font-medium" style={{ color: "var(--color-gray-400)" }}>{formatDate(report.created_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs truncate" style={{ color: "var(--color-gray-500)" }}>
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center bg-gray-100 shrink-0">
+                        <UserIcon size={10} className="text-gray-400" />
+                      </span>
+                      <span className="truncate font-medium">{report.user_email}</span>
                     </div>
                   </div>
                 </div>

@@ -57,6 +57,7 @@ export default function DashboardPage() {
   const [riskFilter, setRiskFilter] = useState<RiskLevel | "ALL">("ALL");
   const [user, setUser] = useState<UserData | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [initialZoomDone, setInitialZoomDone] = useState(false);
 
   const mapRef = useRef<LeafletMapHandle>(null);
 
@@ -65,12 +66,26 @@ export default function DashboardPage() {
     const userData = localStorage.getItem("user_data");
     if (userData) {
       try {
-        setUser(JSON.parse(userData));
+        const parsed = JSON.parse(userData);
+        setUser(parsed);
+        if (parsed.barangay) {
+          setSelectedBarangay(parsed.barangay);
+        }
       } catch {
         // malformed — stay as guest
       }
     }
   }, []);
+
+  // Zoom to user's barangay once map is ready
+  useEffect(() => {
+    if (user?.barangay && data.length > 0 && mapRef.current && !initialZoomDone) {
+      setInitialZoomDone(true);
+      setTimeout(() => {
+        mapRef.current?.flyToBarangay(user.barangay);
+      }, 500);
+    }
+  });
 
   useEffect(() => {
     const handleVisibilityChange = () => {
