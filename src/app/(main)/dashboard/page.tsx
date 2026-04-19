@@ -42,7 +42,6 @@ export default function DashboardPage() {
 
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskLevel | "ALL">("ALL");
-  const [initialZoomDone, setInitialZoomDone] = useState(false);
 
   const mapRef = useRef<GoogleMapHandle>(null);
 
@@ -53,16 +52,7 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  // FIXED: Added missing dependency array to prevent infinite re-renders
-  useEffect(() => {
-    if (user?.barangay && data.length > 0 && mapRef.current && !initialZoomDone) {
-      setInitialZoomDone(true);
-      const timer = setTimeout(() => {
-        mapRef.current?.flyToBarangay(user.barangay!);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [user, data.length, initialZoomDone]);
+  // Initial zoom is now handled inside GoogleMap components onLoad
 
   // Fetch data with polling
   useEffect(() => {
@@ -179,10 +169,10 @@ export default function DashboardPage() {
 
       {/* ── Chart + Alerts Side by Side ─────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-1">
+        <div className="xl:col-span-2">
           <FloodDataChart barangayName={selectedBarangay} data={data} />
         </div>
-        <div className="xl:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="xl:col-span-1">
           <RealTimeAlerts
             data={data}
             loading={loading}

@@ -115,7 +115,18 @@ const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
 
     const onLoad = useCallback((map: google.maps.Map) => {
       mapRef.current = map;
-    }, []);
+      if (selectedBarangay) {
+        // Small delay to ensure map is fully rendered before panning
+        setTimeout(() => {
+          const coords = BARANGAY_BOUNDARIES[selectedBarangay.toUpperCase()];
+          if (coords && coords.length > 0) {
+            const centroid = getCentroid(coords);
+            map.panTo(centroid);
+            map.setZoom(15);
+          }
+        }, 100);
+      }
+    }, [selectedBarangay]);
 
     useImperativeHandle(ref, () => ({
       flyToBarangay(barangay: string) {

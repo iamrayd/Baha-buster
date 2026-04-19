@@ -99,10 +99,9 @@ export default function SignupPage() {
 
         <div className="relative z-10 text-center px-12">
           <div
-            className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
-            style={{ background: "rgba(255,255,255,0.1)" }}
+            className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-white overflow-hidden shadow-lg border-4 border-white/20"
           >
-            <Droplet size={40} className="text-white" />
+            <img src="/images/baha-buster-logo.png" alt="Baha-Buster Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-3">Baha-Buster</h1>
           <p className="text-base font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>
@@ -124,8 +123,8 @@ export default function SignupPage() {
         <div className="max-w-md w-full animate-fade-in">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "var(--color-primary-dark)" }}>
-              <Droplet size={22} className="text-white" />
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white overflow-hidden shadow-sm shrink-0 border border-gray-100">
+              <img src="/images/baha-buster-logo.png" alt="Baha-Buster Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="text-xl font-bold" style={{ color: "var(--color-gray-700)" }}>Baha-Buster</h1>

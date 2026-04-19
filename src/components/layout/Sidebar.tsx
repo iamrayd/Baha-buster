@@ -63,8 +63,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         className="px-6 py-5 flex items-center gap-3"
         style={{ background: "var(--color-primary-dark)" }}
       >
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.15)" }}>
-          <Droplet size={22} className="text-white" />
+        <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0 bg-white border border-white/20">
+          <img src="/images/baha-buster-logo.png" alt="Baha-Buster Logo" className="w-full h-full object-cover" />
         </div>
         <div>
           <h1 className="text-lg font-bold text-white tracking-tight">Baha-Buster</h1>

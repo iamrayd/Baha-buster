@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { Card } from "@/src/components/ui/Card";
 import {
@@ -80,16 +79,17 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
     ? data.find((b) => b.barangay.toUpperCase() === barangayName.toUpperCase())
     : null;
 
+
   const chartData = selectedBarangayData?.predictions
     ? selectedBarangayData.predictions.slice(0, forecastDays).map((p) => {
-        const forecastDate = new Date();
-        forecastDate.setDate(forecastDate.getDate() + (p.day - 1));
-        return {
-          date: forecastDate.toISOString(),
-          predicted_flood_depth_cm: p.predicted_depth_cm,
-          flood_probability_percent: p.flood_probability * 100,
-        };
-      })
+      const forecastDate = new Date();
+      forecastDate.setDate(forecastDate.getDate() + (p.day - 1));
+      return {
+        date: forecastDate.toISOString(),
+        predicted_flood_depth_cm: p.predicted_depth_cm,
+        flood_probability_percent: p.flood_probability * 100,
+      };
+    })
     : [];
 
   const formatDate = (dateStr: string) =>
@@ -127,9 +127,9 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
   const riskLevel = selectedBarangayData.predictions?.[0]?.risk_level || "LOW";
 
   const riskStyles: Record<string, { bg: string; color: string }> = {
-    HIGH:   { bg: "var(--color-risk-high)",   color: "#ffffff" },
+    HIGH: { bg: "var(--color-risk-high)", color: "#ffffff" },
     MEDIUM: { bg: "var(--color-risk-medium)", color: "#ffffff" },
-    LOW:    { bg: "var(--color-risk-low)",    color: "#ffffff" },
+    LOW: { bg: "var(--color-risk-low)", color: "#ffffff" },
   };
 
   const rs = riskStyles[riskLevel];
