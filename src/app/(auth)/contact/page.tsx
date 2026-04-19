@@ -37,7 +37,7 @@ export default function ContactPage() {
       `Message:\n${formData.message}`
     );
 
-    window.open(`mailto:imandingal@gmail.com?subject=${subject}&body=${body}`, "_self");
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=imandingal@gmail.com&su=${subject}&body=${body}`, "_blank");
     setSent(true);
   };
 

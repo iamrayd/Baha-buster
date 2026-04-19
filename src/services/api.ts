@@ -219,6 +219,36 @@ export async function fetchAlertsByBarangay(
   return Array.isArray(data) ? data : [];
 }
 
+export interface SOSAlert {
+  id: string;
+  barangay: string;
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+  status: 'active' | 'resolved';
+}
+
+export async function fetchAllSOSAlerts(): Promise<SOSAlert[]> {
+  try {
+    const res = await fetchWithOfflineGuard(`${API_BASE_URL}/sos`);
+    if (!res.ok) {
+      if (res.status === 404) {
+        // fallback to sos_alerts if /sos is not found
+        const fallback = await fetchWithOfflineGuard(`${API_BASE_URL}/sos_alerts`);
+        if (!fallback.ok) return [];
+        const data = await fallback.json();
+        return Array.isArray(data) ? data : [];
+      }
+      return [];
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.warn("Failed to fetch SOS alerts:", err);
+    return [];
+  }
+}
+
 export interface Report {
   report_id: number;
   severity: string;

@@ -6,7 +6,7 @@ import QuickStats from "@/src/features/dashboard/QuickStats";
 import RealTimeAlerts from "@/src/features/alerts/RealTimeAlerts";
 import FloodDataChart from "@/src/features/dashboard/FloodDataChart";
 import { BarangayFloodData, RiskLevel } from "@/src/types/global";
-import { fetchAllForecasts } from "@/src/services/api";
+import { fetchAllForecasts, fetchAllSOSAlerts, SOSAlert } from "@/src/services/api";
 import { GoogleMapHandle } from "@/src/features/flood-map/components/GoogleMap";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
@@ -42,6 +42,7 @@ export default function DashboardPage() {
 
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskLevel | "ALL">("ALL");
+  const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([]);
 
   const mapRef = useRef<GoogleMapHandle>(null);
 
@@ -77,10 +78,14 @@ export default function DashboardPage() {
       try {
         if (data.length === 0) setStatusMessage("Connecting to server...");
 
-        const jsonData = await fetchAllForecasts();
+        const [jsonData, sosData] = await Promise.all([
+          fetchAllForecasts(),
+          fetchAllSOSAlerts()
+        ]);
 
         if (isMounted) {
           setData(jsonData);
+          setSosAlerts(sosData);
           setLoading(false);
           setError(null); // Clear errors on success
           localStorage.setItem(CACHE_KEY, JSON.stringify(jsonData));
@@ -164,6 +169,7 @@ export default function DashboardPage() {
           selectedBarangay={selectedBarangay}
           riskFilter={riskFilter}
           setRiskFilter={setRiskFilter}
+          sosAlerts={sosAlerts}
         />
       </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
-import { GoogleMap, useJsApiLoader, Polygon } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, Polygon, Marker } from "@react-google-maps/api";
 import { BARANGAY_BOUNDARIES } from "../lib/barangay-data";
 import { getRiskColor } from "../lib/polygon-styles";
 import MapLegend from "./MapLegend";
@@ -104,7 +104,7 @@ function BarangayPolygonComponent({
 
 const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
   function FloodGoogleMap(
-    { data, onBarangayClick, selectedBarangay, riskFilter, setRiskFilter },
+    { data, onBarangayClick, selectedBarangay, riskFilter, setRiskFilter, sosAlerts },
     ref
   ) {
     const mapRef = useRef<google.maps.Map | null>(null);
@@ -194,6 +194,28 @@ const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
                 isSelected={selectedBarangay === barangay}
                 hasData={!!barangayData}
                 onClick={onBarangayClick}
+              />
+            );
+          })}
+          {sosAlerts?.filter(sos => sos.status === 'active').map((sos, index) => {
+            const sosSvg = encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r="20" fill="#E53E3E" stroke="#FFFFFF" stroke-width="3" />
+                <text x="24" y="29" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">SOS</text>
+              </svg>
+            `);
+
+            return (
+              <Marker
+                key={sos.id || `sos-${index}`}
+                position={{ lat: sos.latitude, lng: sos.longitude }}
+                title={`SOS Alert - ${sos.barangay}\nTime: ${new Date(sos.timestamp).toLocaleString()}`}
+                icon={{
+                  url: `data:image/svg+xml;charset=UTF-8,${sosSvg}`,
+                  scaledSize: new google.maps.Size(40, 40),
+                  anchor: new google.maps.Point(20, 20),
+                }}
+                zIndex={999}
               />
             );
           })}
