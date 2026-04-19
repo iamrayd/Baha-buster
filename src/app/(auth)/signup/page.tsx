@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { signup } from "@/src/services/api";
 import { Droplet, Mail, Lock, User, MapPin, Eye, EyeOff } from "lucide-react";
 
@@ -37,6 +37,18 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -186,16 +198,40 @@ export default function SignupPage() {
                 <label className="block text-sm font-semibold mb-1.5" style={{ color: "var(--color-gray-600)" }} htmlFor="barangay">
                   Barangay
                 </label>
-                <div className="relative">
-                  <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--color-gray-400)" }} />
-                  <select
-                    id="barangay" value={formData.barangay} onChange={handleChange}
-                    className="w-full pl-11 pr-4 py-3 text-sm border focus:outline-none focus:ring-2 transition-all appearance-none"
-                    style={inputStyle} required disabled={loading}
+                <div className="relative" ref={dropdownRef}>
+                  <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10" style={{ color: "var(--color-gray-400)" }} />
+                  
+                  <div
+                    onClick={() => !loading && setDropdownOpen(!dropdownOpen)}
+                    className="w-full pl-11 pr-4 py-3 text-sm border focus:outline-none focus:ring-2 transition-all cursor-pointer flex items-center justify-between"
+                    style={inputStyle}
                   >
-                    <option value="">Select your barangay</option>
-                    {BARANGAYS.map((b) => <option key={b} value={b}>{b}</option>)}
-                  </select>
+                    <span className={formData.barangay ? "text-gray-900" : "text-gray-500"}>
+                      {formData.barangay || "Select your barangay"}
+                    </span>
+                    <span className="text-gray-400 text-xs">▼</span>
+                  </div>
+
+                  {dropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1.5 w-full bg-white border border-gray-200 shadow-xl z-50 max-h-[220px] overflow-y-auto" style={{ borderRadius: "var(--radius-card)" }}>
+                      {BARANGAYS.map((b) => (
+                        <div
+                          key={b}
+                          onClick={() => {
+                            setFormData({ ...formData, barangay: b });
+                            setDropdownOpen(false);
+                          }}
+                          className={`px-4 py-3 cursor-pointer text-sm font-medium transition-colors ${
+                            formData.barangay === b 
+                              ? "bg-blue-50 text-blue-700" 
+                              : "text-gray-700 hover:bg-gray-50"
+                          }`}
+                        >
+                          {b}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

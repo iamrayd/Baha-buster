@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X, Send, AlertTriangle, Loader2 } from "lucide-react";
-import { createAlert, AlertSeverity, AlertStatus } from "@/src/services/api";
+import { X, Send, AlertTriangle, Loader2, Sparkles } from "lucide-react";
+import { createAlert, AlertSeverity, AlertStatus, fetchAutoGenerateAlert } from "@/src/services/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -39,6 +39,20 @@ export default function AddAlertModal({ onClose, onSuccess, userBarangay }: AddA
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  async function handleAutoGenerate() {
+    setError(null);
+    setGenerating(true);
+    try {
+      const gen = await fetchAutoGenerateAlert(form.location);
+      setForm((prev) => ({ ...prev, title: gen.title, description: gen.description }));
+    } catch (err) {
+      setError("Failed to generate alert. Please try again or fill manually.");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -117,23 +131,33 @@ export default function AddAlertModal({ onClose, onSuccess, userBarangay }: AddA
             </div>
           )}
 
-          {/* Title */}
+          {/* Title and Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Alert Title <span className="text-red-500">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-gray-700">
+                Alert Title <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
+                onClick={handleAutoGenerate}
+                disabled={submitting || generating}
+              >
+                {generating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                Auto-Generate
+              </button>
+            </div>
             <input
               type="text"
               name="title"
               value={form.title}
               onChange={handleChange}
               placeholder="e.g. Flood Warning"
-              disabled={submitting}
+              disabled={submitting || generating}
               className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
             />
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Description <span className="text-red-500">*</span>
@@ -144,7 +168,7 @@ export default function AddAlertModal({ onClose, onSuccess, userBarangay }: AddA
               onChange={handleChange}
               placeholder="Describe the situation in detail..."
               rows={3}
-              disabled={submitting}
+              disabled={submitting || generating}
               className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none disabled:opacity-50"
             />
           </div>

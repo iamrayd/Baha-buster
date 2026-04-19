@@ -24,10 +24,10 @@ const HOTLINES = [
 ];
 
 const CATEGORY_STYLES: Record<string, { bg: string; color: string; iconBg: string }> = {
-  rescue:  { bg: "var(--color-risk-medium-bg)", color: "var(--color-risk-medium)", iconBg: "var(--color-risk-medium-bg)" },
-  medical: { bg: "var(--color-risk-low-bg)",    color: "var(--color-risk-low)",    iconBg: "var(--color-risk-low-bg)" },
-  police:  { bg: "rgba(44, 82, 130, 0.08)",     color: "var(--color-primary)",     iconBg: "rgba(44, 82, 130, 0.1)" },
-  fire:    { bg: "var(--color-risk-high-bg)",   color: "var(--color-risk-high)",   iconBg: "var(--color-risk-high-bg)" },
+  rescue: { bg: "var(--color-risk-medium-bg)", color: "var(--color-risk-medium)", iconBg: "var(--color-risk-medium-bg)" },
+  medical: { bg: "var(--color-risk-low-bg)", color: "var(--color-risk-low)", iconBg: "var(--color-risk-low-bg)" },
+  police: { bg: "rgba(44, 82, 130, 0.08)", color: "var(--color-primary)", iconBg: "rgba(44, 82, 130, 0.1)" },
+  fire: { bg: "var(--color-risk-high-bg)", color: "var(--color-risk-high)", iconBg: "var(--color-risk-high-bg)" },
 };
 
 const EVACUATION_CENTERS = [

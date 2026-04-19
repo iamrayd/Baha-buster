@@ -1,4 +1,4 @@
-"use client"; 
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
     try {
       const response = await apiLogin({ email, password });
-      
+
       if (!response) {
         throw new Error("No response from server");
       }
@@ -56,9 +56,10 @@ export default function LoginPage() {
       if (!response.user) {
         throw new Error("Login successful but no user data received");
       }
+      if (response.user.role !== "ADMIN") {
+        throw new Error("Access denied. Admin privileges required.");
+      }
 
-      // Force admin role locally in case the backend hardcodes "user" during auth validation
-      response.user.role = "admin";
       response.user.created_at = response.user.created_at || new Date().toISOString();
 
       // Use AuthContext login — this sets localStorage + session_last_active
@@ -66,7 +67,7 @@ export default function LoginPage() {
 
       // Full page reload to ensure AuthProvider picks up fresh session
       window.location.href = "/dashboard";
-      
+
     } catch (err) {
       console.error("❌ Login error:", err);
       setError(err instanceof Error ? err.message : "Login failed. Please check your credentials.");

@@ -121,7 +121,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
 }
 
 export async function signup(data: SignupData): Promise<User> {
-  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/users`, {
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/users/admin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -246,6 +246,26 @@ export async function fetchAllSOSAlerts(): Promise<SOSAlert[]> {
   } catch (err) {
     console.warn("Failed to fetch SOS alerts:", err);
     return [];
+  }
+}
+
+// ─── LLM Generation ─────────────────────────────────────────────────────────
+
+export interface AutoGenerateResponse {
+  title: string;
+  description: string;
+}
+
+export async function fetchAutoGenerateAlert(barangay: string): Promise<AutoGenerateResponse> {
+  try {
+    const res = await fetchWithOfflineGuard(`${API_BASE_URL}/alerts/auto-generate/${encodeURIComponent(barangay)}`);
+    if (!res.ok) {
+      throw new Error("Failed to auto-generate alert from server.");
+    }
+    return await res.json();
+  } catch (err) {
+    console.error("Auto-generate error:", err);
+    throw err;
   }
 }
 
