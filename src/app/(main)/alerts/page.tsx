@@ -92,6 +92,7 @@ export default function AlertsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | "low" | "moderate" | "high">("all");
 
   // Load user from localStorage
   useEffect(() => {
@@ -145,6 +146,12 @@ export default function AlertsPage() {
     fetchAlerts();
   };
 
+  const filteredAlerts = alerts.filter((alert) => {
+    if (filter === "all") return true;
+    if (filter === "high" && alert.severity === "critical") return true;
+    return alert.severity === filter;
+  });
+
   return (
     <div className="space-y-6 w-full max-w-3xl mx-auto pb-8">
 
@@ -194,6 +201,37 @@ export default function AlertsPage() {
           </button>
         )}
       </div>
+
+      {/* Filters */}
+      {!loading && !error && alerts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {(["all", "high", "moderate", "low"] as const).map((f) => {
+            const isActive = filter === f;
+            let activeBg = "var(--color-gray-700)";
+            if (f === "low") activeBg = SEVERITY_CONFIG.low.color;
+            if (f === "moderate") activeBg = SEVERITY_CONFIG.moderate.color;
+            if (f === "high") activeBg = SEVERITY_CONFIG.high.color;
+
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-1.5 text-sm font-semibold capitalize transition-all duration-200 ${
+                  isActive ? "shadow-sm" : "hover:bg-gray-100"
+                }`}
+                style={{
+                  borderRadius: "var(--radius-full)",
+                  background: isActive ? activeBg : "transparent",
+                  color: isActive ? "#ffffff" : "var(--color-gray-500)",
+                  border: `1px solid ${isActive ? activeBg : "var(--color-gray-200)"}`,
+                }}
+              >
+                {f}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Content */}
       <div className="space-y-3">
@@ -269,7 +307,7 @@ export default function AlertsPage() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty state (Total) */}
         {!loading && !error && alerts.length === 0 && (
           <div
             className="flex flex-col items-center justify-center py-16 bg-white"
@@ -298,10 +336,27 @@ export default function AlertsPage() {
           </div>
         )}
 
+        {/* Empty state (Filtered) */}
+        {!loading && !error && alerts.length > 0 && filteredAlerts.length === 0 && (
+          <div
+            className="flex flex-col items-center justify-center py-12 bg-white"
+            style={{
+              borderRadius: "var(--radius-card)",
+              boxShadow: "var(--shadow-card)",
+              border: "1px solid var(--color-gray-100)",
+            }}
+          >
+            <Info size={32} className="mb-2" style={{ color: "var(--color-gray-300)" }} />
+            <p className="font-medium text-sm" style={{ color: "var(--color-gray-500)" }}>
+              No {filter} alerts found
+            </p>
+          </div>
+        )}
+
         {/* Alerts list */}
         {!loading &&
           !error &&
-          alerts.map((alert) => {
+          filteredAlerts.map((alert) => {
             const config = SEVERITY_CONFIG[alert.severity] || SEVERITY_CONFIG.low;
             const IconComponent = config.icon;
 
@@ -374,6 +429,7 @@ export default function AlertsPage() {
         <AddAlertModal
           onClose={() => setShowModal(false)}
           onSuccess={handleAlertSuccess}
+          userBarangay={user?.barangay || ""}
         />
       )}
     </div>

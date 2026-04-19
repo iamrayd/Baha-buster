@@ -6,24 +6,6 @@ import { createAlert, AlertSeverity, AlertStatus } from "@/src/services/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BARANGAYS = [
-  "ADLAON", "AGSUNGOT", "APAS", "BABAG", "BACAYAN", "BANILAD", "BARRIO LUZ",
-  "BASAK PARDO", "BASAK SAN NICOLAS", "BINALIW", "BONBON", "BUDLAAN",
-  "BUHISAN", "BULACAO PARDO", "BUSAY", "BUOT-TAUP", "CALAMBA", "CAMBINOCOT",
-  "CAMPUTHAW", "CAPITOL SITE", "CARRETA", "COGON PARDO", "COGON RAMOS",
-  "DAY-AS", "DULJO", "ERMITA", "GUBA", "GUADALUPE", "HIPODROMO", "INAYAWAN",
-  "KALUBIHAN", "KALUNASAN", "KAMAGAYAN", "KASAMBAGAN", "KINASANG-AN PARDO",
-  "LABANGON", "LAHUG", "LOREGA SAN MIGUEL", "LUSARAN", "MABINI", "MABOLO",
-  "MALUBOG", "MAMBALING", "PAHINA CENTRAL", "PAHINA SAN NICOLAS", "PAMUTAN",
-  "PARIAN", "PARIL", "PASIL", "PIT-OS", "PULANGBATO", "PUNG-OL SIBUGAY",
-  "PUNTA PRINCESA", "PARDO POB.", "QUIOT PARDO", "SAMBAG I", "SAMBAG II",
-  "SAN ANTONIO", "SAN JOSE", "SAN NICOLAS CENTRAL", "SAN ROQUE",
-  "SANTA CRUZ", "SAPANGDAKU", "SAWANG CALERO", "SINSIN", "SIRAO",
-  "STO. NINO", "SUBA", "SUDLON I", "SUDLON II", "T. PADILLA", "TABUNAN",
-  "TAGBA-O", "TALAMBAN", "TAPTAP", "TEJERO", "TINAGO", "TISA", "TOONG",
-  "ZAPATERA",
-].sort();
-
 const SEVERITY_OPTIONS: {
   value: AlertSeverity;
   label: string;
@@ -35,15 +17,10 @@ const SEVERITY_OPTIONS: {
     { value: "high", label: "High", color: "text-red-700", bg: "bg-red-50 border-red-200" },
   ];
 
-const STATUS_OPTIONS: { value: AlertStatus; label: string }[] = [
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-  { value: "resolved", label: "Resolved" },
-];
-
 interface AddAlertModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  userBarangay: string;
 }
 
 interface FormState {
@@ -53,16 +30,13 @@ interface FormState {
   severity: AlertSeverity;
 }
 
-const INITIAL_FORM: FormState = {
-  title: "",
-  location: "",
-  description: "",
-  severity: "moderate",
-};
-
-
-export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps) {
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+export default function AddAlertModal({ onClose, onSuccess, userBarangay }: AddAlertModalProps) {
+  const [form, setForm] = useState<FormState>({
+    title: "",
+    location: userBarangay,
+    description: "",
+    severity: "moderate",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -119,7 +93,7 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
             <div>
               <h2 className="text-base font-semibold text-gray-900">Send Alert</h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Broadcast a flood alert to a barangay
+                Broadcast a flood alert to Barangay {userBarangay}
               </p>
             </div>
           </div>
@@ -157,25 +131,6 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
               disabled={submitting}
               className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
             />
-          </div>
-
-          {/* Barangay */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Barangay <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="location"
-              value={form.location}
-              onChange={handleChange}
-              disabled={submitting}
-              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
-            >
-              <option value="">Select a barangay</option>
-              {BARANGAYS.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
           </div>
 
           {/* Description */}
