@@ -27,13 +27,6 @@ export function isLoggedIn(): boolean {
   return !!localStorage.getItem("user_data");
 }
 
-// ─── Network-aware fetch ──────────────────────────────────────────────────────
-//
-// Used for every call that requires the server to be reachable.
-// If the request fails due to a network error (server offline / not running),
-// the user session is cleared and the page redirects to /login.
-// HTTP error responses (4xx / 5xx) are NOT treated as offline — only a
-// TypeError (fetch failed, no response at all) triggers the logout.
 
 async function fetchWithOfflineGuard(
   input: RequestInfo,
@@ -155,7 +148,7 @@ export async function getAllUsers(): Promise<User[]> {
 
 
 export type AlertSeverity = "low" | "moderate" | "high";
-export type AlertStatus   = "active" | "resolved" | "inactive";
+export type AlertStatus = "active" | "resolved" | "inactive";
 
 export interface CreateAlertPayload {
   title: string;
@@ -172,17 +165,26 @@ export interface AlertRecord extends CreateAlertPayload {
 }
 
 export async function createAlert(payload: CreateAlertPayload): Promise<AlertRecord> {
+  const backendPayload = {
+    ...payload,
+    severity: payload.severity === "high" ? "critical" : payload.severity,
+  };
+
   const res = await fetchWithOfflineGuard(`${API_BASE_URL}/alerts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(backendPayload),
   });
 
   if (!res.ok) {
     let errorMessage = `Server returned ${res.status}`;
     try {
       const error = await res.json();
-      errorMessage = error.message || error.detail || errorMessage;
+      if (error.detail) {
+        errorMessage = typeof error.detail === "string" ? error.detail : JSON.stringify(error.detail);
+      } else if (error.message) {
+        errorMessage = typeof error.message === "string" ? error.message : JSON.stringify(error.message);
+      }
     } catch {
       // response body was not JSON
     }
@@ -190,6 +192,30 @@ export async function createAlert(payload: CreateAlertPayload): Promise<AlertRec
   }
 
   return res.json();
+}
+
+// ─── Barangay Alerts ──────────────────────────────────────────────────────────
+
+export interface BarangayAlertApiResponse {
+  id: number;
+  title: string;
+  location: string;
+  description: string;
+  severity: 'low' | 'moderate' | 'high' | 'critical';
+  status: 'active' | 'acknowledged' | 'resolved';
+  acknowledged: boolean;
+  created_at: string;
+}
+
+export async function fetchAlertsByBarangay(
+  barangay: string
+): Promise<BarangayAlertApiResponse[]> {
+  const res = await fetchWithOfflineGuard(
+    `${API_BASE_URL}/alerts?barangay=${encodeURIComponent(barangay)}`
+  );
+  if (!res.ok) throw new Error(`Failed to fetch alerts: ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
 export interface Report {

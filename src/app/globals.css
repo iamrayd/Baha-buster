@@ -28,12 +28,12 @@
   /* ── Risk / Status Colors ────────────────────────────────────────────── */
   --color-risk-high: #e53e3e;
   --color-risk-medium: #ed8936;
-  --color-risk-low: #48bb78;
+  --color-risk-low: #3b82f6;
 
   /* ── Risk Tint Backgrounds ───────────────────────────────────────────── */
   --color-risk-high-bg: #fee2e2;
   --color-risk-medium-bg: #fffaf0;
-  --color-risk-low-bg: #f0fff4;
+  --color-risk-low-bg: #eff6ff;
 
   /* ── Accent Colors ──────────────────────────────────────────────────── */
   --color-accent-blue: #3b82f6;

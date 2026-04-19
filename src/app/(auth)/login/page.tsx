@@ -2,17 +2,38 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { login } from "@/src/services/api";
+import { useState, useEffect } from "react";
+import { login as apiLogin } from "@/src/services/api";
+import { useAuth } from "@/src/contexts/AuthContext";
 import { Droplet, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, user, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, isLoading, router]);
+
+  // Show nothing while checking auth (prevents flash of login form)
+  if (isLoading || user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-surface)" }}>
+        <div
+          className="w-10 h-10 border-3 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: "var(--color-primary)", borderTopColor: "transparent" }}
+        />
+      </div>
+    );
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,44 +46,22 @@ export default function LoginPage() {
       return;
     }
 
-    console.log("🔐 Login attempt:", { email, password: "***" });
-
     try {
-      const response = await login({ email, password });
-      console.log("✅ Login response:", response);
+      const response = await apiLogin({ email, password });
       
       if (!response) {
         throw new Error("No response from server");
       }
 
-      if (response.token) {
-        console.log("💾 Storing token");
-        localStorage.setItem("auth_token", response.token);
-      } else {
-        console.warn("⚠️ No token in response");
-      }
-      
-      if (response.user) {
-        console.log("💾 Storing user data:", response.user);
-        localStorage.setItem("user_data", JSON.stringify(response.user));
-      } else {
-        console.error("❌ No user data in response!");
+      if (!response.user) {
         throw new Error("Login successful but no user data received");
       }
 
-      const storedUser = localStorage.getItem("user_data");
-      console.log("✔️ Verification - User data stored:", storedUser ? "YES" : "NO");
-      
-      if (!storedUser) {
-        throw new Error("Failed to store user data");
-      }
+      // Use AuthContext login — this sets localStorage + session_last_active
+      login(response.user, response.token);
 
-      console.log("🚀 Redirecting to dashboard...");
-      
-      setTimeout(() => {
-        router.push("/dashboard");
-        window.location.href = "/dashboard";
-      }, 100);
+      // Full page reload to ensure AuthProvider picks up fresh session
+      window.location.href = "/dashboard";
       
     } catch (err) {
       console.error("❌ Login error:", err);
@@ -181,9 +180,6 @@ export default function LoginPage() {
                   <label className="text-sm font-semibold" style={{ color: "var(--color-gray-600)" }} htmlFor="password">
                     Password
                   </label>
-                  <Link href="#" className="text-xs font-medium" style={{ color: "var(--color-primary)" }}>
-                    Forgot password?
-                  </Link>
                 </div>
                 <div className="relative">
                   <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--color-gray-400)" }} />
@@ -233,9 +229,9 @@ export default function LoginPage() {
             </form>
 
             <p className="mt-6 text-center text-sm" style={{ color: "var(--color-gray-500)" }}>
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="font-semibold underline transition-colors" style={{ color: "var(--color-primary)" }}>
-                Sign up
+              Need an account?{" "}
+              <Link href="/contact" className="font-semibold underline transition-colors" style={{ color: "var(--color-primary)" }}>
+                Contact Us
               </Link>
             </p>
           </div>

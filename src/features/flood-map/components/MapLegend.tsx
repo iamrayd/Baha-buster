@@ -2,7 +2,7 @@ import { MapLegendProps } from "../types";
 
 export default function MapLegend({ riskFilter, setRiskFilter }: MapLegendProps) {
   return (
-    <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 text-xs z-[1000] border border-gray-200">
+    <div className="absolute bottom-4 left-4 sm:top-4 sm:right-4 sm:bottom-auto sm:left-auto bg-white rounded-lg shadow-lg p-2 sm:p-3 text-xs z-[1000] border border-gray-200 max-w-[140px] sm:max-w-none">
       <div className="font-bold text-gray-700 mb-2 border-b pb-1">Legend</div>
       <div className="space-y-1">
         <button

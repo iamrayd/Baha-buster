@@ -30,13 +30,13 @@ const SEVERITY_OPTIONS: {
   color: string;
   bg: string;
 }[] = [
-  { value: "low",      label: "Low",      color: "text-blue-700",   bg: "bg-blue-50 border-blue-200"     },
-  { value: "moderate", label: "Moderate", color: "text-orange-700", bg: "bg-orange-50 border-orange-200" },
-  { value: "high",     label: "High",     color: "text-red-700",    bg: "bg-red-50 border-red-200"       },
-];
+    { value: "low", label: "Low", color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
+    { value: "moderate", label: "Moderate", color: "text-orange-700", bg: "bg-orange-50 border-orange-200" },
+    { value: "high", label: "High", color: "text-red-700", bg: "bg-red-50 border-red-200" },
+  ];
 
 const STATUS_OPTIONS: { value: AlertStatus; label: string }[] = [
-  { value: "active",   label: "Active"   },
+  { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
   { value: "resolved", label: "Resolved" },
 ];
@@ -51,22 +51,20 @@ interface FormState {
   location: string;
   description: string;
   severity: AlertSeverity;
-  status: AlertStatus;
 }
 
 const INITIAL_FORM: FormState = {
-  title:       "",
-  location:    "",
+  title: "",
+  location: "",
   description: "",
-  severity:    "moderate",
-  status:      "active",
+  severity: "moderate",
 };
 
 
 export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps) {
-  const [form, setForm]           = useState<FormState>(INITIAL_FORM);
+  const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]         = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -86,11 +84,11 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
     setSubmitting(true);
     try {
       await createAlert({
-        title:        form.title.trim(),
-        location:     form.location,
-        description:  form.description.trim(),
-        severity:     form.severity,
-        status:       form.status,
+        title: form.title.trim(),
+        location: form.location,
+        description: form.description.trim(),
+        severity: form.severity,
+        status: "active",
         acknowledged: false,
       });
       onSuccess();
@@ -201,7 +199,7 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Severity <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {SEVERITY_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
@@ -223,32 +221,7 @@ export default function AddAlertModal({ onClose, onSuccess }: AddAlertModalProps
             </div>
           </div>
 
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Status
-            </label>
-            <div className="flex gap-2">
-              {STATUS_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, status: opt.value }))}
-                  disabled={submitting}
-                  className={`
-                    flex-1 py-2 text-xs font-medium rounded-lg border transition-all
-                    ${form.status === opt.value
-                      ? "bg-gray-900 text-white border-gray-900"
-                      : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
-                    }
-                    disabled:opacity-50
-                  `}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+
 
           {/* Live preview strip */}
           <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100 min-h-[42px]">

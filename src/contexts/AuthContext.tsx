@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { User } from "@/src/services/api";
 
+const SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -19,30 +21,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const clearSession = useCallback(() => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem("user_data");
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("session_last_active");
+  }, []);
+
+  const isSessionExpired = useCallback((): boolean => {
+    const lastActive = localStorage.getItem("session_last_active");
+    if (!lastActive) return true; // No timestamp means no valid session
+    const elapsed = Date.now() - parseInt(lastActive, 10);
+    return elapsed > SESSION_TIMEOUT_MS;
+  }, []);
+
   const refreshAuth = useCallback(() => {
-    console.log("🔄 Refreshing auth state...");
     try {
       const storedUser = localStorage.getItem("user_data");
       const storedToken = localStorage.getItem("auth_token");
 
       if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        console.log("✅ Auth refreshed:", parsedUser.email);
-        setUser(parsedUser);
-        setToken(storedToken);
+        // Check if session has expired
+        if (isSessionExpired()) {
+          console.log("⏰ Session expired, clearing auth");
+          clearSession();
+        } else {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setToken(storedToken);
+        }
       } else {
-        console.log("ℹ️ No user data found");
         setUser(null);
         setToken(null);
       }
     } catch (error) {
       console.error("❌ Error refreshing auth:", error);
-      setUser(null);
-      setToken(null);
+      clearSession();
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isSessionExpired, clearSession]);
 
   const login = useCallback((newUser: User, newToken?: string) => {
     console.log("✅ AuthContext: Logging in user:", newUser.email);
@@ -53,15 +72,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (newToken) {
       localStorage.setItem("auth_token", newToken);
     }
+    // Set session timestamp on login
+    localStorage.setItem("session_last_active", Date.now().toString());
   }, []);
 
   const logout = useCallback(() => {
     console.log("🚪 AuthContext: Logging out");
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem("user_data");
-    localStorage.removeItem("auth_token");
-  }, []);
+    clearSession();
+  }, [clearSession]);
 
   // Initial load
   useEffect(() => {
@@ -71,8 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Listen for storage changes (e.g., login in another tab)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "user_data" || e.key === "auth_token") {
-        console.log("📡 Storage changed, refreshing auth");
+      if (e.key === "user_data" || e.key === "auth_token" || e.key === "session_last_active") {
         refreshAuth();
       }
     };
@@ -85,7 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log("👁️ Page visible, refreshing auth");
         refreshAuth();
       }
     };

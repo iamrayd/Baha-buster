@@ -3,16 +3,10 @@
 import { createPortal } from "react-dom";
 import { Home, AlertTriangle, FileText, Package, Settings, Droplet, LogOut, User } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { cn } from "@/src/lib/utils";
-import { useEffect, useState } from "react";
-
-interface UserData {
-  user_id: number;
-  email: string;
-  name: string;
-  barangay: string;
-}
+import { useState } from "react";
+import { useAuth } from "@/src/contexts/AuthContext";
 
 const baseNavItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
@@ -23,68 +17,47 @@ const baseNavItems = [
 
 const settingsItem = { label: "Settings", href: "/settings", icon: Settings };
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
+  const { user, logout } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user_data");
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch {
-        // malformed
-      }
-    }
-  }, []);
-
-  // Listen for storage changes (login/logout in other tabs)
-  useEffect(() => {
-    const handleStorage = () => {
-      const userData = localStorage.getItem("user_data");
-      if (userData) {
-        try { setUser(JSON.parse(userData)); } catch { setUser(null); }
-      } else {
-        setUser(null);
-      }
-    };
-
-    const handleVisibility = () => {
-      if (!document.hidden) handleStorage();
-    };
-
-    window.addEventListener("storage", handleStorage);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
-
-  const navItems = user ? [...baseNavItems, settingsItem] : baseNavItems;
+  const navItems = [...baseNavItems, settingsItem];
 
   const handleLogoutClick = () => {
     setShowLogoutConfirm(true);
   };
 
   const confirmLogout = () => {
-    localStorage.removeItem("user_data");
-    localStorage.removeItem("auth_token");
-    setUser(null);
+    logout(); // Clears context state + localStorage + session_last_active
     setShowLogoutConfirm(false);
-    router.push("/login");
+    window.location.href = "/login"; // Full reload to reset all state
   };
 
   return (
-    <aside
-      className="w-64 h-screen fixed left-0 top-0 z-10 flex flex-col"
-      style={{
-        background: "linear-gradient(180deg, #ffffff 0%, #f7fafc 100%)",
-        boxShadow: "var(--shadow-sidebar)",
-      }}
-    >
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 md:hidden animate-fade-in"
+          onClick={onClose}
+        />
+      )}
+      <aside
+        className={cn(
+          "w-64 h-screen fixed left-0 top-0 z-50 flex flex-col transition-transform duration-300 md:translate-x-0 hidden md:flex",
+          isOpen ? "translate-x-0 flex" : "-translate-x-full"
+        )}
+        style={{
+          background: "linear-gradient(180deg, #ffffff 0%, #f7fafc 100%)",
+          boxShadow: "var(--shadow-sidebar)",
+        }}
+      >
       {/* ── Brand Header ────────────────────────────────────────────────── */}
       <div
         className="px-6 py-5 flex items-center gap-3"
@@ -112,6 +85,11 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={() => {
+                if (window.innerWidth < 768 && onClose) {
+                  onClose();
+                }
+              }}
               className={cn(
                 "sidebar-link",
                 isActive && "sidebar-link-active"
@@ -124,49 +102,34 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* ── User / Guest Footer ─────────────────────────────────────────── */}
+      {/* ── User Footer ────────────────────────────────────────────────── */}
       <div className="px-3 pb-4 pt-2 border-t" style={{ borderColor: "var(--color-gray-200)" }}>
-        {user ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: "var(--color-gray-50)" }}>
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: "var(--color-primary)", color: "#fff" }}
-              >
-                <User size={16} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate" style={{ color: "var(--color-gray-700)" }}>
-                  {user.name}
-                </p>
-                <p className="text-[11px] truncate" style={{ color: "var(--color-gray-400)" }}>
-                  {user.barangay}
-                </p>
-              </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: "var(--color-gray-50)" }}>
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: "var(--color-primary)", color: "#fff" }}
+            >
+              <User size={16} />
             </div>
-            <button
-              onClick={handleLogoutClick}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:bg-red-50"
-              style={{ color: "var(--color-risk-high)" }}
-            >
-              <LogOut size={16} />
-              <span>Log Out</span>
-            </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold truncate" style={{ color: "var(--color-gray-700)" }}>
+                {user?.name ?? ""}
+              </p>
+              <p className="text-[11px] truncate" style={{ color: "var(--color-gray-400)" }}>
+                {user?.barangay ?? ""}
+              </p>
+            </div>
           </div>
-        ) : (
-          <div className="px-3 py-3 rounded-xl text-center" style={{ background: "var(--color-gray-50)" }}>
-            <p className="text-xs font-medium" style={{ color: "var(--color-gray-400)" }}>
-              Guest Mode
-            </p>
-            <Link
-              href="/login"
-              className="mt-2 block w-full py-2 rounded-lg text-xs font-semibold text-white text-center transition-colors"
-              style={{ background: "var(--color-primary)" }}
-            >
-              Sign In
-            </Link>
-          </div>
-        )}
+          <button
+            onClick={handleLogoutClick}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:bg-red-50"
+            style={{ color: "var(--color-risk-high)" }}
+          >
+            <LogOut size={16} />
+            <span>Log Out</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Logout Modal ────────────────────────────────────────────────── */}
@@ -203,5 +166,6 @@ export default function Sidebar() {
         document.body
       )}
     </aside>
+    </>
   );
 }

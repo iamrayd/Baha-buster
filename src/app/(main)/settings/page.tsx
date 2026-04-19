@@ -81,24 +81,24 @@ export default function ProfilePage() {
       >
         {/* Header gradient */}
         <div
-          className="h-32"
+          className="h-24 sm:h-32"
           style={{ background: "linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)" }}
         />
 
         {/* Profile content */}
-        <div className="px-8 pb-8">
+        <div className="px-4 sm:px-8 pb-6 sm:pb-8">
           {/* Avatar */}
-          <div className="flex flex-col sm:flex-row sm:items-end gap-6 -mt-16 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6 -mt-12 sm:-mt-16 mb-6">
             <div
-              className="w-32 h-32 rounded-full bg-white border-4 border-white flex items-center justify-center"
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white border-4 border-white flex items-center justify-center"
               style={{ boxShadow: "var(--shadow-elevated)" }}
             >
-              <User size={48} style={{ color: "var(--color-primary)" }} />
+              <User className="w-10 h-10 sm:w-12 sm:h-12" style={{ color: "var(--color-primary)" }} />
             </div>
 
             <div className="flex-1 sm:mb-4">
-              <h2 className="text-2xl font-bold" style={{ color: "var(--color-gray-700)" }}>{user.name}</h2>
-              <p style={{ color: "var(--color-gray-500)" }}>{user.email}</p>
+              <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "var(--color-gray-700)" }}>{user.name}</h2>
+              <p className="text-sm sm:text-base break-all" style={{ color: "var(--color-gray-500)" }}>{user.email}</p>
             </div>
           </div>
 
@@ -151,7 +151,7 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <button
           onClick={() => router.push("/alerts")}
-          className="p-6 bg-white text-left group transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          className="p-4 sm:p-6 bg-white text-left group transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
           style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}
         >
           <div className="flex items-center gap-4">
@@ -170,7 +170,7 @@ export default function ProfilePage() {
 
         <button
           onClick={() => router.push("/dashboard")}
-          className="p-6 bg-white text-left group transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          className="p-4 sm:p-6 bg-white text-left group transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
           style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}
         >
           <div className="flex items-center gap-4">
