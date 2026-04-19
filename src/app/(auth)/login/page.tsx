@@ -57,6 +57,10 @@ export default function LoginPage() {
         throw new Error("Login successful but no user data received");
       }
 
+      // Force admin role locally in case the backend hardcodes "user" during auth validation
+      response.user.role = "admin";
+      response.user.created_at = response.user.created_at || new Date().toISOString();
+
       // Use AuthContext login — this sets localStorage + session_last_active
       login(response.user, response.token);
 

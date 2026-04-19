@@ -13,8 +13,9 @@ import {
   Clock
 } from "lucide-react";
 import {
-  getAllReports,
+  getReportsByBarangay,
   Report,
+  User,
 } from "@/src/services/api";
 
 /* ───────────────── CONFIG ───────────────── */
@@ -228,14 +229,34 @@ function FeedPost({ report }: { report: Report }) {
 export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    getAllReports().then((data) => {
-      setReports(data || []);
+    // Load local user metadata to fetch scoped reports
+    const rawData = localStorage.getItem("user_data");
+    let activeUser: User | null = null;
+    
+    if (rawData) {
+      try {
+        activeUser = JSON.parse(rawData);
+        setUser(activeUser);
+      } catch (err) {
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Only load reports for the user's specific barangay
+    if (activeUser?.barangay) {
+      getReportsByBarangay(activeUser.barangay).then((data) => {
+        setReports(data || []);
+        setLoading(false);
+      }).catch(() => {
+        setLoading(false); // Handle potential API errors gracefully
+      });
+    } else {
       setLoading(false);
-    }).catch(() => {
-      setLoading(false); // Handle potential API errors gracefully
-    });
+    }
   }, []);
 
   // Calculate quick stats for the dashboard header

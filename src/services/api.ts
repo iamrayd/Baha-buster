@@ -60,6 +60,7 @@ export interface SignupData {
   name: string;
   password: string;
   barangay: string;
+  role?: string;
 }
 
 export interface User {

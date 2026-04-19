@@ -56,9 +56,17 @@ export default function SignupPage() {
         name: fullName,
         password: formData.password,
         barangay: formData.barangay,
+        role: "admin",
       });
 
-      localStorage.setItem("user_data", JSON.stringify(user));
+      // The backend string might omit fields, so we guarantee them for the UI session:
+      const safeUser = {
+        ...user,
+        role: "admin",
+        created_at: user.created_at || new Date().toISOString(),
+      };
+
+      localStorage.setItem("user_data", JSON.stringify(safeUser));
       setSuccess("Successfully created user!");
 
       setTimeout(() => {

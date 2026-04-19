@@ -39,8 +39,13 @@ export default function ProfilePage() {
     }
   }, [router]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Today";
+    const date = new Date(dateString);
+    // Fallback if Date is invalid
+    if (isNaN(date.getTime())) return "Today";
+    
+    return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
