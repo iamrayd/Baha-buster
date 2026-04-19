@@ -100,7 +100,7 @@ export default function DashboardPage() {
     }
 
     fetchData();
-    const interval = setInterval(fetchData, 300_000); // 5 minutes
+    const interval = setInterval(fetchData, 10_000); // 10 seconds for real-time SOS
 
     return () => {
       isMounted = false;
@@ -157,7 +157,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Quick Stats ─────────────────────────────────────────────────── */}
-      <QuickStats data={data} loading={loading} />
+      <QuickStats data={data} sosAlerts={sosAlerts} loading={loading} />
 
       {/* ── Full-Width Map ──────────────────────────────────────────────── */}
       {/* FIXED: Added 'relative z-0 isolate' to prevent map controls from overlapping the sidebar */}

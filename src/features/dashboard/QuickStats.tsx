@@ -1,19 +1,23 @@
 import { Card } from "@/src/components/ui/Card";
 import { BarangayFloodData } from "@/src/types/global";
-import { AlertTriangle, MapPin, Shield } from "lucide-react";
+import { SOSAlert } from "@/src/services/api";
+import { AlertTriangle, MapPin, Shield, RadioTower } from "lucide-react";
 
 interface QuickStatsProps {
   data: BarangayFloodData[];
+  sosAlerts?: SOSAlert[];
   loading: boolean;
 }
 
-export default function QuickStats({ data, loading }: QuickStatsProps) {
+export default function QuickStats({ data, sosAlerts = [], loading }: QuickStatsProps) {
   const highRiskCount = data.filter((d) => d.predictions?.[0]?.risk_level === "HIGH").length;
   const mediumRiskCount = data.filter((d) => d.predictions?.[0]?.risk_level === "MEDIUM").length;
-  
+
   const activeAlerts = highRiskCount + mediumRiskCount;
   const areasMonitored = data.length;
   const teamsDeployed = Math.ceil(activeAlerts * 1.5);
+  
+  const activeSos = sosAlerts.filter(sos => sos.status === 'active').length;
 
   const stats = [
     {
@@ -43,10 +47,19 @@ export default function QuickStats({ data, loading }: QuickStatsProps) {
       iconColor: "var(--color-risk-low)",
       valueColor: "var(--color-risk-low)",
     },
+    {
+      label: "Active SOS Signals",
+      subtitle: "Citizens in distress",
+      value: loading ? "—" : activeSos,
+      icon: RadioTower,
+      iconBg: activeSos > 0 ? "var(--color-risk-high-bg)" : "var(--color-gray-100)",
+      iconColor: activeSos > 0 ? "var(--color-risk-high)" : "var(--color-gray-500)",
+      valueColor: activeSos > 0 ? "var(--color-risk-high)" : "var(--color-gray-700)",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       {stats.map((stat) => (
         <Card key={stat.label}>
           <div className="flex items-center gap-4">
