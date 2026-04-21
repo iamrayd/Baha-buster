@@ -70,12 +70,21 @@ const SEVERITY_CONFIG: Record<
 
 function timeAgo(dateString: string): string {
   const now = new Date();
-  const date = new Date(dateString);
+  
+  let parsed = dateString;
+  if (parsed && !/(Z|[+-]\d{2}:\d{2})$/.test(parsed)) {
+    parsed = parsed.replace(' ', 'T') + 'Z';
+  }
+  
+  let date = new Date(parsed);
+  if (isNaN(date.getTime())) date = new Date(dateString);
+
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHrs = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHrs / 24);
 
+  if (diffMs < 0) return "Just now";
   if (diffMins < 1) return "Just now";
   if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
   if (diffHrs < 24) return `${diffHrs} hour${diffHrs !== 1 ? "s" : ""} ago`;

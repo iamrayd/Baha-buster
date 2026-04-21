@@ -40,13 +40,27 @@ function getSeverityConfig(severity?: string) {
 
 /* ───────────────── UTILITIES ───────────────── */
 
+function parseSafeDate(dateString: string): Date {
+  if (!dateString) return new Date();
+  let parsed = dateString;
+  // If no timezone indicator, assume it's UTC from backend and append Z
+  if (!/(Z|[+-]\d{2}:\d{2})$/.test(parsed)) {
+    parsed = parsed.replace(' ', 'T') + 'Z';
+  }
+  const date = new Date(parsed);
+  return isNaN(date.getTime()) ? new Date(dateString) : date;
+}
+
 function formatRelativeTime(dateString: string): string {
   const now = new Date();
-  const date = new Date(dateString);
+  const date = parseSafeDate(dateString);
   const diff = now.getTime() - date.getTime();
   const min = Math.floor(diff / 60000);
   const hr = Math.floor(min / 60);
   const day = Math.floor(hr / 24);
+
+  // If time is slightly in the future due to clock differences
+  if (diff < 0) return "Just now";
 
   if (min < 1) return "Just now";
   if (min < 60) return `${min}m ago`;
@@ -57,7 +71,7 @@ function formatRelativeTime(dateString: string): string {
 }
 
 function formatFullDate(dateString: string): string {
-  return new Date(dateString).toLocaleString([], {
+  return parseSafeDate(dateString).toLocaleString([], {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -261,7 +275,7 @@ export default function ReportsPage() {
 
   // Calculate quick stats for the dashboard header
   const criticalCount = reports.filter(r => ["critical", "high"].includes(r.severity?.toLowerCase())).length;
-  const recentCount = reports.filter(r => (new Date().getTime() - new Date(r.created_at).getTime()) < 86400000).length;
+  const recentCount = reports.filter(r => (new Date().getTime() - parseSafeDate(r.created_at).getTime()) < 86400000).length;
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-6">

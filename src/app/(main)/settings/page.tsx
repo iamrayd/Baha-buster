@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, LogOut, MapPin, Mail, Calendar, Shield, AlertTriangle, BarChart3 } from "lucide-react";
+import { MapPin, Mail, Calendar, Shield, AlertTriangle, BarChart3 } from "lucide-react";
 
 interface UserData {
   user_id: number;
@@ -91,20 +91,10 @@ export default function ProfilePage() {
         />
 
         {/* Profile content */}
-        <div className="px-4 sm:px-8 pb-6 sm:pb-8">
-          {/* Avatar */}
-          <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6 -mt-12 sm:-mt-16 mb-6">
-            <div
-              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white border-4 border-white flex items-center justify-center"
-              style={{ boxShadow: "var(--shadow-elevated)" }}
-            >
-              <User className="w-10 h-10 sm:w-12 sm:h-12" style={{ color: "var(--color-primary)" }} />
-            </div>
-
-            <div className="flex-1 sm:mb-4">
-              <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "var(--color-gray-700)" }}>{user.name}</h2>
-              <p className="text-sm sm:text-base break-all" style={{ color: "var(--color-gray-500)" }}>{user.email}</p>
-            </div>
+        <div className="px-4 sm:px-8 pt-6 sm:pt-8 pb-6 sm:pb-8">
+          <div className="mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "var(--color-gray-700)" }}>{user.name}</h2>
+            <p className="text-sm sm:text-base break-all" style={{ color: "var(--color-gray-500)" }}>{user.email}</p>
           </div>
 
           {/* User Details */}
