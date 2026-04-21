@@ -207,9 +207,9 @@ const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
 
             return (
               <Marker
-                key={sos.id || `sos-${index}`}
+                key={sos.id || sos.sos_id || `sos-${index}`}
                 position={{ lat: sos.latitude, lng: sos.longitude }}
-                title={`SOS Alert - ${sos.barangay}\nTime: ${new Date(sos.timestamp).toLocaleString()}`}
+                title={`SOS Alert - ${sos.barangay}\nFrom: ${sos.requester_name || 'Unknown User'}\nTime: ${new Date(sos.timestamp || sos.created_at || Date.now()).toLocaleString()}`}
                 icon={{
                   url: `data:image/svg+xml;charset=UTF-8,${sosSvg}`,
                   scaledSize: new google.maps.Size(40, 40),

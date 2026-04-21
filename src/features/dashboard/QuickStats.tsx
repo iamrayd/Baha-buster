@@ -15,7 +15,6 @@ export default function QuickStats({ data, sosAlerts = [], loading }: QuickStats
 
   const activeAlerts = highRiskCount + mediumRiskCount;
   const areasMonitored = data.length;
-  const teamsDeployed = Math.ceil(activeAlerts * 1.5);
   
   const activeSos = sosAlerts.filter(sos => sos.status === 'active').length;
 
@@ -38,15 +37,7 @@ export default function QuickStats({ data, sosAlerts = [], loading }: QuickStats
       iconColor: "var(--color-primary)",
       valueColor: "var(--color-primary)",
     },
-    {
-      label: "Response Teams",
-      subtitle: "Ready to deploy",
-      value: loading ? "—" : teamsDeployed,
-      icon: Shield,
-      iconBg: "var(--color-risk-low-bg)",
-      iconColor: "var(--color-risk-low)",
-      valueColor: "var(--color-risk-low)",
-    },
+
     {
       label: "Active SOS Signals",
       subtitle: "Citizens in distress",
@@ -59,7 +50,7 @@ export default function QuickStats({ data, sosAlerts = [], loading }: QuickStats
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {stats.map((stat) => (
         <Card key={stat.label}>
           <div className="flex items-center gap-4">

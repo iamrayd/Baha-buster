@@ -220,11 +220,14 @@ export async function fetchAlertsByBarangay(
 }
 
 export interface SOSAlert {
-  id: string;
+  id?: string;
+  sos_id?: number | string;
   barangay: string;
   latitude: number;
   longitude: number;
-  timestamp: string;
+  timestamp?: string;
+  created_at?: string;
+  requester_name?: string;
   status: 'active' | 'resolved';
 }
 
