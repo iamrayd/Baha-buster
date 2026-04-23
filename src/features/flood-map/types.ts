@@ -1,5 +1,6 @@
 import { RiskLevel, BarangayFloodData } from "@/src/types/global";
 import { SOSAlert } from "@/src/services/api";
+import { EvacuationCenter } from "@/src/lib/evacuation-centers";
 
 export interface LeafletMapProps {
   data: BarangayFloodData[];
@@ -8,7 +9,11 @@ export interface LeafletMapProps {
   riskFilter: RiskLevel | "ALL";
   setRiskFilter: (filter: RiskLevel | "ALL") => void;
   sosAlerts?: SOSAlert[];
+  evacuationCenters?: EvacuationCenter[];
+  showEvacuation?: boolean;
+  onToggleEvacuation?: () => void;
 }
+
 
 export interface BarangayPolygonsProps {
   data: BarangayFloodData[];

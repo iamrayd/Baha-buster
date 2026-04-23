@@ -11,6 +11,7 @@ import { RiskLevel } from "@/src/types/global";
 
 export interface GoogleMapHandle {
   flyToBarangay: (barangay: string) => void;
+  panToLocation: (lat: number, lng: number, zoom?: number) => void;
 }
 
 const CEBU_CENTER = { lat: 10.3157, lng: 123.8854 };
@@ -104,7 +105,7 @@ function BarangayPolygonComponent({
 
 const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
   function FloodGoogleMap(
-    { data, onBarangayClick, selectedBarangay, riskFilter, setRiskFilter, sosAlerts },
+    { data, onBarangayClick, selectedBarangay, riskFilter, setRiskFilter, sosAlerts, evacuationCenters, showEvacuation, onToggleEvacuation },
     ref
   ) {
     const mapRef = useRef<google.maps.Map | null>(null);
@@ -135,6 +136,11 @@ const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
         const centroid = getCentroid(coords);
         mapRef.current.panTo(centroid);
         mapRef.current.setZoom(15);
+      },
+      panToLocation(lat: number, lng: number, zoom?: number) {
+        if (!mapRef.current) return;
+        mapRef.current.panTo({ lat, lng });
+        mapRef.current.setZoom(zoom ?? 17);
       },
     }));
 
@@ -227,8 +233,52 @@ const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
               />
             );
           })}
+          {/* Evacuation center markers */}
+          {showEvacuation && evacuationCenters?.map((center, index) => {
+            const evacSvg = encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
+                <path d="M20 0 C9 0 0 9 0 20 C0 35 20 48 20 48 C20 48 40 35 40 20 C40 9 31 0 20 0Z" fill="#38A169" stroke="#FFFFFF" stroke-width="2"/>
+                <circle cx="20" cy="18" r="10" fill="white" opacity="0.3"/>
+                <text x="20" y="23" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">E</text>
+              </svg>
+            `);
+
+            return (
+              <Marker
+                key={`evac-${index}`}
+                position={{ lat: center.lat, lng: center.lng }}
+                title={`${center.name}\n${center.address}\nBarangay: ${center.barangay}`}
+                icon={{
+                  url: `data:image/svg+xml;charset=UTF-8,${evacSvg}`,
+                  scaledSize: new google.maps.Size(32, 38),
+                  anchor: new google.maps.Point(16, 38),
+                }}
+                zIndex={500}
+              />
+            );
+          })}
         </GoogleMap>
         <MapLegend riskFilter={riskFilter} setRiskFilter={setRiskFilter} />
+
+        {/* Evacuation centers toggle */}
+        {onToggleEvacuation && (
+          <button
+            onClick={onToggleEvacuation}
+            className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg shadow-md transition-all duration-200 hover:shadow-lg z-10"
+            style={{
+              background: showEvacuation ? '#38A169' : '#fff',
+              color: showEvacuation ? '#fff' : 'var(--color-gray-600)',
+              border: showEvacuation ? '1px solid #38A169' : '1px solid var(--color-gray-200)',
+            }}
+            title={showEvacuation ? 'Hide evacuation centers' : 'Show evacuation centers'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            {showEvacuation ? 'Hide Evac Centers' : 'Evac Centers'}
+          </button>
+        )}
       </div>
     );
   }

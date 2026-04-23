@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import QuickStats from "@/src/features/dashboard/QuickStats";
 import RealTimeAlerts from "@/src/features/alerts/RealTimeAlerts";
@@ -10,6 +11,7 @@ import { fetchAllForecasts, fetchAllSOSAlerts, SOSAlert } from "@/src/services/a
 import { GoogleMapHandle } from "@/src/features/flood-map/components/GoogleMap";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { EVACUATION_CENTERS } from "@/src/lib/evacuation-centers";
 
 const FloodGoogleMap = dynamic(
   () => import("@/src/features/flood-map/components/GoogleMap"),
@@ -45,6 +47,8 @@ export default function DashboardPage() {
   const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([]);
 
   const mapRef = useRef<GoogleMapHandle>(null);
+  const searchParams = useSearchParams();
+  const [showEvacuation, setShowEvacuation] = useState(false);
 
   // Set initial barangay from user profile
   useEffect(() => {
@@ -52,6 +56,31 @@ export default function DashboardPage() {
       setSelectedBarangay(user.barangay);
     }
   }, [user]);
+
+  // Pan to coordinates from URL search params (e.g. from evacuation center Map button)
+  useEffect(() => {
+    const lat = searchParams.get("lat");
+    const lng = searchParams.get("lng");
+    const zoom = searchParams.get("zoom");
+    const showEvac = searchParams.get("showEvac");
+
+    // Auto-show evacuation markers when coming from Resources page
+    if (showEvac === "true") {
+      setShowEvacuation(true);
+    }
+
+    if (lat && lng) {
+      // Small delay to ensure the map is loaded
+      const timer = setTimeout(() => {
+        mapRef.current?.panToLocation(
+          parseFloat(lat),
+          parseFloat(lng),
+          zoom ? parseInt(zoom, 10) : 17
+        );
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   // Initial zoom is now handled inside GoogleMap components onLoad
 
@@ -170,6 +199,9 @@ export default function DashboardPage() {
           riskFilter={riskFilter}
           setRiskFilter={setRiskFilter}
           sosAlerts={sosAlerts}
+          evacuationCenters={EVACUATION_CENTERS}
+          showEvacuation={showEvacuation}
+          onToggleEvacuation={() => setShowEvacuation((prev) => !prev)}
         />
       </div>
 
