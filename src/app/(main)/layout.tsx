@@ -11,12 +11,18 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen" style={{ background: "var(--color-surface)" }}>
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+      <div className="flex min-h-screen relative" style={{ background: "var(--color-surface)" }}>
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+        <div className={`flex-1 transition-all duration-300 w-full ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} flex flex-col min-h-screen`}>
           <Header onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 p-4 md:p-8 w-full animate-fade-in overflow-x-hidden">
             {children}

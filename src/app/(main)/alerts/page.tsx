@@ -162,7 +162,7 @@ export default function AlertsPage() {
   });
 
   return (
-    <div className="space-y-6 w-full max-w-3xl mx-auto pb-8">
+    <div className="space-y-6 w-full pb-8">
 
       {/* Success toast */}
       {successMsg && (

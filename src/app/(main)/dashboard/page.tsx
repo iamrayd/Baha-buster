@@ -118,7 +118,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-5 w-full max-w-7xl mx-auto pb-8">
+    <div className="space-y-5 w-full pb-8">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
