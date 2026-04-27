@@ -73,7 +73,7 @@ export default function ResourcesPage() {
       <div>
         <h1 className="text-2xl font-bold" style={{ color: "var(--color-gray-700)" }}>Emergency Resources</h1>
         <p className="text-sm mt-1" style={{ color: "var(--color-gray-400)" }}>
-          Important contacts, guides, and preparedness materials.
+          Important contacts, hotlines, and evacuation centers.
         </p>
       </div>
 
