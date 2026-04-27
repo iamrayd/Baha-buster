@@ -249,7 +249,7 @@ export default function ReportsPage() {
     // Load local user metadata to fetch scoped reports
     const rawData = localStorage.getItem("user_data");
     let activeUser: User | null = null;
-    
+
     if (rawData) {
       try {
         activeUser = JSON.parse(rawData);
@@ -285,10 +285,11 @@ export default function ReportsPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Flood Reports</h1>
-            <p className="text-sm text-gray-500 mt-1">Live monitoring for Cebu City</p>
-          </div>
-          <div className="w-12 h-12 bg-blue-50 flex-shrink-0 flex items-center justify-center rounded-xl text-blue-600">
-            <FileText size={24} />
+            <p className="text-sm mt-1" style={{ color: "var(--color-gray-400)" }}>
+              {user?.barangay
+                ? `Live reports in barangay ${user.barangay}`
+                : "View reports in your barangay."}
+            </p>
           </div>
         </div>
 

@@ -120,7 +120,7 @@ export default function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">User Management</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Manage users within your barangay ({currentUser?.barangay || "..."}).
+            Manage users within your barangay {currentUser?.barangay || "..."}.
           </p>
         </div>
         <div className="relative">

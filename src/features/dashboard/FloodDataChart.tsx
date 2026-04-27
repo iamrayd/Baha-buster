@@ -6,6 +6,7 @@ import {
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { BarangayFloodData } from "@/src/types/global";
+import { Droplets, TrendingUp, Calendar } from "lucide-react";
 
 interface FloodDataChartProps {
   barangayName: string | null;
@@ -28,6 +29,8 @@ interface CustomTooltipProps {
   payload?: TooltipPayloadItem[];
   label?: string;
 }
+
+const DAY_LABELS = ["Today", "Tomorrow", "Day After"];
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length > 0) {
@@ -69,6 +72,12 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
+const riskStyles: Record<string, { bg: string; color: string; tint: string }> = {
+  HIGH: { bg: "var(--color-risk-high)", color: "#ffffff", tint: "var(--color-risk-high-bg)" },
+  MEDIUM: { bg: "var(--color-risk-medium)", color: "#ffffff", tint: "var(--color-risk-medium-bg)" },
+  LOW: { bg: "var(--color-risk-low)", color: "#ffffff", tint: "var(--color-risk-low-bg)" },
+};
+
 export default function FloodDataChart({ barangayName, data }: FloodDataChartProps) {
   const [forecastDays, setForecastDays] = useState<1 | 2 | 3>(3);
   const [isMounted, setIsMounted] = useState(false);
@@ -79,9 +88,10 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
     ? data.find((b) => b.barangay.toUpperCase() === barangayName.toUpperCase())
     : null;
 
+  const predictions = selectedBarangayData?.predictions ?? [];
 
-  const chartData = selectedBarangayData?.predictions
-    ? selectedBarangayData.predictions.slice(0, forecastDays).map((p) => {
+  const chartData = predictions.length > 0
+    ? predictions.slice(0, forecastDays).map((p) => {
       const forecastDate = new Date();
       forecastDate.setDate(forecastDate.getDate() + (p.day - 1));
       return {
@@ -124,19 +134,13 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
     );
   }
 
-  const riskLevel = selectedBarangayData.predictions?.[0]?.risk_level || "LOW";
-
-  const riskStyles: Record<string, { bg: string; color: string }> = {
-    HIGH: { bg: "var(--color-risk-high)", color: "#ffffff" },
-    MEDIUM: { bg: "var(--color-risk-medium)", color: "#ffffff" },
-    LOW: { bg: "var(--color-risk-low)", color: "#ffffff" },
-  };
-
+  const riskLevel = predictions[0]?.risk_level || "LOW";
   const rs = riskStyles[riskLevel];
 
   return (
-    <Card>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+    <Card className="animate-fade-in">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-lg font-bold" style={{ color: "var(--color-gray-700)" }}>{barangayName}</h2>
@@ -147,7 +151,7 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
               {riskLevel} RISK
             </span>
           </div>
-          <p className="text-xs mt-1" style={{ color: "var(--color-gray-400)" }}>{forecastDays}-Day Flood Depth & Probability Forecast</p>
+          <p className="text-xs mt-1" style={{ color: "var(--color-gray-400)" }}>{forecastDays}-Day Flood Depth &amp; Probability Forecast</p>
         </div>
         <div className="flex p-1 rounded-lg" style={{ background: "var(--color-gray-100)" }}>
           {([1, 2, 3] as const).map((day) => (
@@ -167,7 +171,68 @@ export default function FloodDataChart({ barangayName, data }: FloodDataChartPro
         </div>
       </div>
 
-      <div className="h-80 w-full">
+      {/* ── Forecast Summary Cards ─────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+        {predictions.slice(0, forecastDays).map((pred, i) => {
+          const dayRs = riskStyles[pred.risk_level] || riskStyles.LOW;
+          const forecastDate = new Date();
+          forecastDate.setDate(forecastDate.getDate() + (pred.day - 1));
+          const dateStr = forecastDate.toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          });
+
+          return (
+            <div
+              key={pred.day}
+              className="p-3.5 transition-all duration-200"
+              style={{
+                background: dayRs.tint,
+                borderRadius: "var(--radius-input)",
+                border: `1px solid ${dayRs.tint}`,
+              }}
+            >
+              {/* Day + date */}
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={12} style={{ color: dayRs.bg, opacity: 0.8 }} />
+                  <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: dayRs.bg }}>
+                    {DAY_LABELS[i] ?? `Day ${pred.day}`}
+                  </span>
+                </div>
+                <span className="text-[10px] font-medium" style={{ color: "var(--color-gray-400)" }}>
+                  {dateStr}
+                </span>
+              </div>
+
+              {/* Metrics */}
+              <div className="flex items-center justify-between gap-2 mb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp size={13} style={{ color: dayRs.bg }} />
+                  <span className="text-sm font-bold" style={{ color: dayRs.bg }}>
+                    {(pred.flood_probability * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Droplets size={13} style={{ color: "var(--color-primary)" }} />
+                  <span className="text-sm font-bold" style={{ color: "var(--color-gray-700)" }}>
+                    {pred.predicted_depth_cm} cm
+                  </span>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <p className="text-[10px] leading-relaxed" style={{ color: "var(--color-gray-500)" }}>
+                {pred.summary}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Chart ──────────────────────────────────────────────────────── */}
+      <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>

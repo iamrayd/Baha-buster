@@ -190,8 +190,6 @@ export async function updateUser(userId: number, data: Partial<User & { password
     try {
       const error = await res.json();
       errorMessage = error.message || error.detail || errorMessage;
-      console.log(userId);
-      console.log(data);
     } catch { }
     throw new Error(errorMessage);
   }
