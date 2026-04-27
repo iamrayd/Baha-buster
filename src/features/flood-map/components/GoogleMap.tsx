@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
-import { GoogleMap, useJsApiLoader, Polygon, Marker } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, Polygon, Marker, InfoWindow } from "@react-google-maps/api";
 import { BARANGAY_BOUNDARIES } from "../lib/barangay-data";
 import { getRiskColor } from "../lib/polygon-styles";
 import MapLegend from "./MapLegend";
 import { LeafletMapProps } from "../types";
-import { BarangayFloodData } from "@/src/types/global";
-import { RiskLevel } from "@/src/types/global";
+import { BarangayFloodData, RiskLevel } from "@/src/types/global";
+import { resolveSOSAlert, SOSAlert } from "@/src/services/api";
 
 export interface GoogleMapHandle {
   flyToBarangay: (barangay: string) => void;
@@ -109,6 +109,22 @@ const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
     ref
   ) {
     const mapRef = useRef<google.maps.Map | null>(null);
+    const [selectedSOS, setSelectedSOS] = useState<SOSAlert | null>(null);
+    const [isResolving, setIsResolving] = useState(false);
+
+    const handleResolveSOS = async (sos: SOSAlert) => {
+      const sosId = sos.id || sos.sos_id;
+      if (!sosId) return;
+      setIsResolving(true);
+      try {
+        await resolveSOSAlert(sosId);
+        setSelectedSOS(null);
+      } catch (error) {
+        console.error("Failed to resolve SOS:", error);
+      } finally {
+        setIsResolving(false);
+      }
+    };
 
     const { isLoaded, loadError } = useJsApiLoader({
       googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "",
@@ -230,9 +246,44 @@ const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
                   anchor: new google.maps.Point(20, 20),
                 }}
                 zIndex={999}
+                onClick={() => setSelectedSOS(sos)}
               />
             );
           })}
+
+          {selectedSOS && (
+            <InfoWindow
+              position={{ lat: selectedSOS.latitude, lng: selectedSOS.longitude }}
+              onCloseClick={() => setSelectedSOS(null)}
+            >
+              <div className="p-2 max-w-xs text-sm" style={{ color: '#333' }}>
+                <h3 className="font-bold text-base mb-1 flex items-center gap-2" style={{ color: '#E53E3E' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                  SOS Alert
+                </h3>
+                <p className="mb-1"><strong>Barangay:</strong> {selectedSOS.barangay}</p>
+                <p className="mb-1"><strong>From:</strong> {selectedSOS.requester_name || 'Unknown User'}</p>
+                <p className="mb-3">
+                  <strong>Time:</strong> {(() => {
+                    const ts = selectedSOS.timestamp || selectedSOS.created_at;
+                    if (!ts) return new Date().toLocaleString();
+                    let parsed = ts;
+                    if (!/(Z|[+-]\d{2}:\d{2})$/.test(parsed)) parsed = parsed.replace(' ', 'T') + 'Z';
+                    let d = new Date(parsed);
+                    if (isNaN(d.getTime())) d = new Date(ts);
+                    return d.toLocaleString();
+                  })()}
+                </p>
+                <button
+                  onClick={() => handleResolveSOS(selectedSOS)}
+                  disabled={isResolving}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 px-3 rounded shadow-sm text-center transition-all disabled:opacity-50"
+                >
+                  {isResolving ? 'Resolving...' : 'Mark as Resolved'}
+                </button>
+              </div>
+            </InfoWindow>
+          )}
           {/* Evacuation center markers */}
           {showEvacuation && evacuationCenters?.map((center, index) => {
             const evacSvg = encodeURIComponent(`
@@ -273,8 +324,8 @@ const FloodGoogleMap = forwardRef<GoogleMapHandle, LeafletMapProps>(
             title={showEvacuation ? 'Hide evacuation centers' : 'Show evacuation centers'}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-              <circle cx="12" cy="10" r="3"/>
+              <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+              <circle cx="12" cy="10" r="3" />
             </svg>
             {showEvacuation ? 'Hide Evac Centers' : 'Evac Centers'}
           </button>

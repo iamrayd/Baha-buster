@@ -179,6 +179,39 @@ export async function getAllUsers(): Promise<User[]> {
   return res.json();
 }
 
+export async function updateUser(userId: number, data: Partial<User & { password?: string }>): Promise<User> {
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/users/admin/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    let errorMessage = `Server returned ${res.status}`;
+    try {
+      const error = await res.json();
+      errorMessage = error.message || error.detail || errorMessage;
+      console.log(userId);
+      console.log(data);
+    } catch { }
+    throw new Error(errorMessage);
+  }
+  return res.json();
+}
+
+export async function deleteUser(userId: number): Promise<void> {
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/users/${userId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    let errorMessage = `Server returned ${res.status}`;
+    try {
+      const error = await res.json();
+      errorMessage = error.message || error.detail || errorMessage;
+    } catch { }
+    throw new Error(errorMessage);
+  }
+}
+
 
 export type AlertSeverity = "low" | "moderate" | "high";
 export type AlertStatus = "active" | "resolved" | "inactive";
@@ -290,10 +323,10 @@ export async function fetchAllSOSAlerts(): Promise<SOSAlert[]> {
 
     const uniqueAlerts = new Map<string, SOSAlert>();
     for (const alert of sortedData) {
-      const key = (alert.requester_name && alert.requester_name.trim() !== "") 
-        ? alert.requester_name.trim() 
+      const key = (alert.requester_name && alert.requester_name.trim() !== "")
+        ? alert.requester_name.trim()
         : `${alert.latitude},${alert.longitude}`;
-      
+
       if (!uniqueAlerts.has(key)) {
         uniqueAlerts.set(key, alert);
       }
@@ -303,6 +336,15 @@ export async function fetchAllSOSAlerts(): Promise<SOSAlert[]> {
   } catch (err) {
     console.warn("Failed to fetch SOS alerts:", err);
     return [];
+  }
+}
+
+export async function resolveSOSAlert(sosId: string | number): Promise<void> {
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/sos/${sosId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to resolve SOS alert: ${res.status}`);
   }
 }
 

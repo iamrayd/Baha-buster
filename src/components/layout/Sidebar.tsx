@@ -13,6 +13,7 @@ const baseNavItems = [
   { label: "Alerts", href: "/alerts", icon: AlertTriangle },
   { label: "Reports", href: "/reports", icon: FileText },
   { label: "Resources", href: "/resources", icon: Package },
+  { label: "User Management", href: "/users", icon: User },
 ];
 
 const settingsItem = { label: "Settings", href: "/settings", icon: Settings };

@@ -9,13 +9,17 @@ import {
   Loader2,
   RefreshCw,
   Plus,
+  Trash2,
+  AlertCircle,
 } from "lucide-react";
 import {
   fetchAlertsByBarangay,
+  deleteAlert,
   BarangayAlertApiResponse,
   User,
 } from "@/src/services/api";
 import AddAlertModal from "@/src/features/alerts/AddAlertModal";
+import { createPortal } from "react-dom";
 
 // ─── Severity Config ──────────────────────────────────────────────────────────
 
@@ -102,6 +106,15 @@ export default function AlertsPage() {
   const [showModal, setShowModal] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "low" | "moderate" | "high">("all");
+  const [isMounted, setIsMounted] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingAlertId, setDeletingAlertId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [resultModal, setResultModal] = useState<{ type: "success" | "error", title: string, message: string } | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Load user from localStorage
   useEffect(() => {
@@ -160,6 +173,28 @@ export default function AlertsPage() {
     if (filter === "high" && alert.severity === "critical") return true;
     return alert.severity === filter;
   });
+
+  const handleDeleteClick = (alertId: number) => {
+    setDeletingAlertId(alertId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingAlertId) return;
+    setIsDeleting(true);
+    try {
+      await deleteAlert(deletingAlertId);
+      setIsDeleteModalOpen(false);
+      setDeletingAlertId(null);
+      await fetchAlerts();
+      setResultModal({ type: "success", title: "Success", message: "Alert deleted successfully!" });
+    } catch (err: any) {
+      setIsDeleteModalOpen(false);
+      setResultModal({ type: "error", title: "Delete Failed", message: err.message || "Failed to delete alert." });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6 w-full pb-8">
@@ -426,6 +461,15 @@ export default function AlertsPage() {
                         {alert.description}
                       </p>
                     </div>
+
+                    {/* Delete button */}
+                    <button
+                      onClick={() => handleDeleteClick(alert.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0 mt-0.5"
+                      title="Delete Alert"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -440,6 +484,68 @@ export default function AlertsPage() {
           onSuccess={handleAlertSuccess}
           userBarangay={user?.barangay || ""}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isMounted && isDeleteModalOpen && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Alert?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to delete this alert? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 flex-1 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 flex-1 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Result Modal */}
+      {isMounted && resultModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${resultModal.type === 'success' ? 'bg-blue-100' : 'bg-red-100'}`}>
+              {resultModal.type === 'success' ? (
+                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              )}
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">{resultModal.title}</h3>
+            <p className="text-sm text-gray-500 mb-6">{resultModal.message}</p>
+            <button
+              onClick={() => {
+                setResultModal(null);
+                setIsDeleteModalOpen(false);
+              }}
+              className={`w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white transition-colors ${
+                resultModal.type === 'success' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'
+              }`}
+            >
+              Okay
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
