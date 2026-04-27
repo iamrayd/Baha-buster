@@ -284,6 +284,20 @@ export async function fetchAlertsByBarangay(
   return Array.isArray(data) ? data : [];
 }
 
+export async function deleteAlert(alertId: number): Promise<void> {
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/alerts/${alertId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    let errorMessage = `Server returned ${res.status}`;
+    try {
+      const error = await res.json();
+      errorMessage = error.message || error.detail || errorMessage;
+    } catch { }
+    throw new Error(errorMessage);
+  }
+}
+
 export interface SOSAlert {
   id?: string;
   sos_id?: number | string;
