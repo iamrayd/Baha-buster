@@ -32,8 +32,19 @@ async function fetchWithOfflineGuard(
   input: RequestInfo,
   init?: RequestInit
 ): Promise<Response> {
+  const options = init ? { ...init } : {};
+  const headers = new Headers(options.headers || {});
+
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth_token");
+    if (token && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  }
+  options.headers = headers;
+
   try {
-    return await fetch(input, init);
+    return await fetch(input, options);
   } catch (err) {
     throw err;
   }
@@ -254,19 +265,41 @@ export interface SOSAlert {
 
 export async function fetchAllSOSAlerts(): Promise<SOSAlert[]> {
   try {
+    let rawData: SOSAlert[] = [];
     const res = await fetchWithOfflineGuard(`${API_BASE_URL}/sos`);
     if (!res.ok) {
       if (res.status === 404) {
         // fallback to sos_alerts if /sos is not found
         const fallback = await fetchWithOfflineGuard(`${API_BASE_URL}/sos_alerts`);
-        if (!fallback.ok) return [];
-        const data = await fallback.json();
-        return Array.isArray(data) ? data : [];
+        if (fallback.ok) {
+          const data = await fallback.json();
+          rawData = Array.isArray(data) ? data : [];
+        }
       }
-      return [];
+    } else {
+      const data = await res.json();
+      rawData = Array.isArray(data) ? data : [];
     }
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
+
+    // Deduplicate by user to prevent multiple SOS markers for the same person
+    const sortedData = [...rawData].sort((a, b) => {
+      const tsA = new Date(a.timestamp || a.created_at || 0).getTime();
+      const tsB = new Date(b.timestamp || b.created_at || 0).getTime();
+      return tsB - tsA; // Newest first
+    });
+
+    const uniqueAlerts = new Map<string, SOSAlert>();
+    for (const alert of sortedData) {
+      const key = (alert.requester_name && alert.requester_name.trim() !== "") 
+        ? alert.requester_name.trim() 
+        : `${alert.latitude},${alert.longitude}`;
+      
+      if (!uniqueAlerts.has(key)) {
+        uniqueAlerts.set(key, alert);
+      }
+    }
+
+    return Array.from(uniqueAlerts.values());
   } catch (err) {
     console.warn("Failed to fetch SOS alerts:", err);
     return [];
@@ -333,12 +366,21 @@ export async function getReportsByBarangay(barangay: string): Promise<Report[]> 
 }
 
 export async function getAllReports(): Promise<Report[]> {
+  const headers = new Headers();
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  }
+
   const results = await Promise.allSettled(
     ALL_BARANGAYS.map((barangay) =>
       // Individual barangay fetches use plain fetch — a single failure
       // shouldn't log the user out or block the rest.
       fetch(
-        `${REPORTS_API_BASE_URL}/reports?barangay=${encodeURIComponent(barangay)}`
+        `${REPORTS_API_BASE_URL}/reports?barangay=${encodeURIComponent(barangay)}`,
+        { headers }
       ).then((res) => {
         if (!res.ok) return [] as Report[];
         return res.json().then((data: unknown) =>
