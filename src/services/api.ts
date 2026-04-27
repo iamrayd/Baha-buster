@@ -180,7 +180,7 @@ export async function getAllUsers(): Promise<User[]> {
 }
 
 export async function updateUser(userId: number, data: Partial<User & { password?: string }>): Promise<User> {
-  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/users/admin/${userId}`, {
+  const res = await fetchWithOfflineGuard(`${API_BASE_URL}/users/${userId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
